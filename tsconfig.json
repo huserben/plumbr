@@ -1,13 +1,22 @@
 {
   "compilerOptions": {
-      "module": "amd",
-      "moduleResolution": "node",
-      "target": "es5",
-      "rootDir": "",
-      "outDir": "",
-      "types": [
-          "vss-web-extension-sdk"
-      ]	,
-      "skipLibCheck": true
+    "charset": "utf8",
+    "experimentalDecorators": true,
+    "module": "amd",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "strict": false,
+    "target": "es5",
+    "rootDir": "",
+    "outDir": "",
+    "types": [],
+    "lib": [
+      "es5",
+      "es6",
+      "dom",
+      "es2015.promise"
+    ],
+    "skipLibCheck": true
   }
 }
