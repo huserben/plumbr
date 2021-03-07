@@ -2,7 +2,7 @@
     "manifestVersion": 1,
     "id": "plumbr",
     "publisher": "benjhuser",
-    "version": "0.1.1",
+    "version": "0.1.4",
     "name": "Plumbr - Your Pipeline Manager",
     "description": "Manage your Azure Pipelines with this extension",
     "public": false,
@@ -28,6 +28,10 @@
     "files": [
         {
             "path": "plumbr.html",
+            "addressable": true
+        },
+        {
+            "path": "plumbr.js",
             "addressable": true
         },
         {

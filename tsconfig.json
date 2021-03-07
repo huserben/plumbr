@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+      "module": "amd",
+      "moduleResolution": "node",
+      "target": "es5",
+      "rootDir": "",
+      "outDir": "",
+      "types": [
+          "vss-web-extension-sdk"
+      ]	,
+      "skipLibCheck": true
+  }
+}
