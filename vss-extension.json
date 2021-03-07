@@ -2,7 +2,7 @@
     "manifestVersion": 1,
     "id": "plumbr",
     "publisher": "benjhuser",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "name": "Plumbr - Your Pipeline Manager",
     "description": "Manage your Azure Pipelines with this extension",
     "public": false,
@@ -17,7 +17,7 @@
             "id": "plubmr",
             "type": "ms.vss-web.hub",
             "targets": [
-                "ms.vss-code-web.code-hub-group"
+                "ms.vss-build-web.build-release-hub-group"
             ],
             "properties": {
                 "name": "Plumbr",
