@@ -1,0 +1,22 @@
+{
+  "name": "plumbr",
+  "version": "0.1.0",
+  "description": "Azure DevOps Extension that should show Pipeline Status and allow for Stage Approvals and Promotions",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huserben/plumbr.git"
+  },
+  "author": "huserben",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/huserben/plumbr/issues"
+  },
+  "homepage": "https://github.com/huserben/plumbr#readme",
+  "dependencies": {
+    "vss-web-extension-sdk": "^5.141.0"
+  }
+}
