@@ -1,12 +1,12 @@
 {
     "manifestVersion": 1,
     "id": "plumbr",
-    "publisher": "huserben",
+    "publisher": "benjhuser",
     "version": "0.1.0",
     "name": "Plumbr - Your Pipeline Manager",
     "description": "Manage your Azure Pipelines with this extension",
     "public": false,
-    "categories": ["Azure Repos"],
+    "categories": ["Azure Pipelines"],
     "targets": [
         {
             "id": "Microsoft.VisualStudio.Services"

@@ -131,3 +131,4 @@ dist
 *.d.ts
 
 out/*
+*.vsix
