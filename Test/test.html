@@ -2,7 +2,6 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 
 <head>
-    <script src="lib/VSS.SDK.min.js"></script>
     <style>
         body {
             background-color: rgb(0, 67, 117);
@@ -14,7 +13,7 @@
 </head>
 
 <body>
-    <h1>Welcome to plumbr</h1>
+    <h1>Welcome to plmbr</h1>
     <label for="buildefinitions">Build Definition:</label>
     <select name="buildefinitions" id="buildefinitions"></select>
 
@@ -22,22 +21,11 @@
     <select name="branches" id="branches"></select>
 
     <h2>Pipelines</h2>
-    <ol id="pipelines">       
+    <ol id="pipelines">
+        
     </ol>
 
-    <script type="text/javascript">
-        // Initialize the VSS sdk
-        VSS.init({
-            explicitNotifyLoaded: true
-        });
-        // Wait for the SDK to be initialized
-        VSS.ready(function () {
-            VSS.require(["plumbr.js"], function (app) {
-                app.plmbr.start();
-                VSS.notifyLoadSucceeded();
-            });
-        });
-    </script>
+    <script src="test.js"></script>
 </body>
 
 </html>
