@@ -1,0 +1,38 @@
+{
+    "manifestVersion": 1,
+    "id": "plumbr",
+    "publisher": "benjhuser",
+    "version": "0.1.41",
+    "name": "Plumbr - Your Pipeline Manager",
+    "description": "Manage your Azure Pipelines with this extension",
+    "public": false,
+    "categories": [
+        "Azure Pipelines"
+    ],
+    "targets": [
+        {
+            "id": "Microsoft.VisualStudio.Services"
+        }
+    ],
+    "scopes":[
+        "vso.build_execute"
+    ],
+    "icons": {
+        "default": "static/plumber.png"
+    },
+    "content": {
+        "details": {
+            "path": "overview.md"
+        }
+    },
+    "files": [
+        {
+            "path": "static",
+            "addressable": true
+        },
+        {
+            "path": "dist",
+            "addressable": true
+        }
+    ]
+}
