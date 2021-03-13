@@ -2,16 +2,17 @@ import { BuildRestClient, TaskResult, TimelineRecord, TimelineRecordState } from
 import * as React from "react";
 import { Card } from "azure-devops-ui/Card";
 import { IStatusProps, Statuses, Status, StatusSize } from "azure-devops-ui/Status";
+import { IHeaderCommandBarItem } from "azure-devops-ui/HeaderCommandBar";
 
 export interface IStageComponentProps {
     currentStage: TimelineRecord,
-    stages: TimelineRecord[],
+    timelineRecords: TimelineRecord[],
     buildService?: BuildRestClient
 }
 
 export interface IStageComponentState {
-    needsApproval: boolean,
-    approvalState: TimelineRecordState
+    commandBarItems: IHeaderCommandBarItem[],
+    approval?: TimelineRecord
 }
 
 export class StageComponent extends React.Component<IStageComponentProps, IStageComponentState> {
@@ -19,8 +20,7 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
         super(props);
 
         this.state = {
-            needsApproval: false,
-            approvalState: TimelineRecordState.Pending
+            commandBarItems: []
         }
     }
 
@@ -29,26 +29,37 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
     }
 
     public async initializeState(): Promise<void> {
-        if (this.props.currentStage){
-            
-            var needsApproval = false;
-            var approvalState = TimelineRecordState.Pending;
+        var approval: TimelineRecord | undefined = undefined;
+        var commandBarItems: IHeaderCommandBarItem[] = [];
 
-            var checkPoints = this.props.stages.filter((record, index) => record.parentId === this.props.currentStage.id && record.type === "Checkpoint");
-            if (checkPoints.length === 1){
-                var checkPoint = checkPoints[0];
-                var approvals = checkPoints.filter((record, index) => record.parentId === checkPoint.id && record.type === "Checkpoint.Approval")
+        var checkPoints = this.props.timelineRecords.filter((record, index) => (
+            record.parentId === this.props.currentStage.id && record.type === "Checkpoint")
+        );
 
-                if (approvals.length === 1){
-                    needsApproval = true;
+        if (checkPoints.length === 1) {
+            var checkPoint = checkPoints[0];
 
-                    var approval = approvals[0];
-                    approvalState = approval.state;
-                }
+            var approvals = this.props.timelineRecords.filter((record, index) => record.parentId === checkPoint.id && record.type === "Checkpoint.Approval")
+
+            if (approvals.length === 1) {
+                approval = approvals[0];
+
+                commandBarItems.push({
+                    important: true,
+                    id: "approveStage",
+                    text: "Approve",
+                    disabled: approval.state !== TimelineRecordState.InProgress,
+                    onActivate: () => {
+                        alert("Approve!");
+                    },
+                    iconProps: {
+                        iconName: "TriggerApproval"
+                    }
+                });
             }
-
-            this.setState({ needsApproval: needsApproval, approvalState: approvalState });
         }
+
+        this.setState({ approval: approval, commandBarItems: commandBarItems });
     }
 
     private renderStatus = (className?: string) => {
@@ -87,12 +98,15 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
 
     public render(): JSX.Element {
 
-        const { needsApproval } = this.state;
+        const { commandBarItems } = this.state;
 
         return (
             <Card
-                headerIconProps={{render: this.renderStatus}}>
-                {this.props.currentStage.name} - Needs Approval: {needsApproval}</Card>
+                className="flex-grow"
+                titleProps={{ text: this.props.currentStage.name }}
+                headerIconProps={{ render: this.renderStatus }}
+                headerCommandBarItems={commandBarItems}>
+            </Card>
         );
     }
 }

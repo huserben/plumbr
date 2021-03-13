@@ -2,7 +2,7 @@ import * as React from "react";
 import * as SDK from "azure-devops-extension-sdk";
 import { CommonServiceIds, IProjectPageService, getClient } from "azure-devops-extension-api";
 import * as adoBuild from "azure-devops-extension-api/Build";
-import { BuildRestClient, BuildDefinitionReference, Build, BuildStatus, BuildResult } from "azure-devops-extension-api/Build";
+import { BuildRestClient, BuildDefinitionReference, Build, BuildQueryOrder } from "azure-devops-extension-api/Build";
 import { Dropdown } from "azure-devops-ui/Dropdown";
 import { IListBoxItem } from "azure-devops-ui/ListBox";
 import { PipelineRun } from "./Components/PipelineRun";
@@ -59,31 +59,22 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
 
     private onSelectedPipelineChanged = async (event: React.SyntheticEvent<HTMLElement>, item: IListBoxItem<BuildDefinitionReference>): Promise<void> => {       
 
-        console.log(`Selected Pipeline ${item.text}`)
-
         if (item.data?.id) {
             var buildsForDefinition: Build[] = await this.state.buildService?.getBuilds(this.state.projectName, [item.data?.id]) ?? [];
 
             var branches: string[] = buildsForDefinition.map((build, index) => (build.sourceBranch));
             var distinctBranches = branches.filter((branch, index) => branches.indexOf(branch) === index);
 
-            console.log(`Found following branches for selected pipeline: ${distinctBranches}`);
-
             this.setState({ selectedPipeline: item.data.id, branches: distinctBranches });
         }
     }
 
     private onSelectedBranchChanged = async (event: React.SyntheticEvent<HTMLElement>, item: IListBoxItem<string>): Promise<void> => {
-        console.log(`Selected Branch ${item.data}`)
 
         if (item.data) {
-            console.log(`Fetching Builds for Branch ${item.data}`)
-
             var buildsForBranch: Build[] = await this.state.buildService?.getBuilds(
-                this.state.projectName, [this.state.selectedPipeline], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, item.data)
+                this.state.projectName, [this.state.selectedPipeline], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 10, undefined, undefined, undefined, BuildQueryOrder.StartTimeDescending,  item.data)
                 ?? [];
-
-            console.log(`Found Builds: ${buildsForBranch}`)
 
             this.setState({ selectedBranch: item.data, builds: buildsForBranch })
         }
