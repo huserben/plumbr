@@ -49,7 +49,7 @@ define(["require", "exports", "VSS/Service", "TFS/Build/RestClient"],
             var buildDefinition: any = document.getElementById("buildefinitions");
             var definitionFilter: any[] = [buildDefinition.value];
 
-            var buildsForBranch : any[] = await buildClient.getBuilds(webContext.project.id, definitionFilter, null, null, null, null, null, null, null, null, null, null, null, null, null, null, branch.value)
+            var buildsForBranch : any[] = await buildClient.getBuilds(webContext.project.id, definitionFilter, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, branch.value)
 
             var pipelinesList = document.getElementById("pipelines")
             while(pipelinesList.firstChild){
