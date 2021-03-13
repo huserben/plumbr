@@ -2,8 +2,8 @@ import { Build, BuildRestClient, BuildResult, BuildStatus, Timeline, TimelineRec
 import * as React from "react";
 import { Page } from "azure-devops-ui/Page";
 import { CustomHeader, HeaderDescription, HeaderIcon, HeaderTitle, HeaderTitleArea, HeaderTitleRow, TitleSize } from "azure-devops-ui/Header";
-import { Card } from "azure-devops-ui/Card";
 import { IStatusProps, Statuses, Status, StatusSize } from "azure-devops-ui/Status";
+import { StageComponent } from "./StageComponent";
 
 export interface IPipelineRunProps {
     build: Build,
@@ -32,9 +32,9 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
         if (this.props.buildService){
             var buildTimeline : Timeline = await this.props.buildService.getBuildTimeline(this.props.projectName, this.props.build.id);
             
-            var stages = buildTimeline.records.filter((record, index) => record.type === "Stage").sort((rec1, rec2) => (
+            var stages = buildTimeline?.records.filter((record, index) => record.type === "Stage").sort((rec1, rec2) => (
                 rec1.startTime?.getTime() ?? Number.MAX_VALUE - rec2.startTime?.getTime() ?? Number.MAX_VALUE
-                ));
+                )) ?? [];
             this.setState({ stages: stages });
         }
     }
@@ -97,7 +97,7 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
                 <div className="page-content page-content-top flex-row rhythm-horizontal-16">
                     {
                         stages.map((stage, index) => (
-                            <Card>{stage.name}</Card>
+                            <StageComponent currentStage={stage} stages={stages} buildService={this.props.buildService} />
                         ))
                     }
                 </div>
