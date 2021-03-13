@@ -11,6 +11,7 @@ import { Tab, TabBar, TabSize } from "azure-devops-ui/Tabs";
 
 import { OverviewTab } from "./OverviewTab"; 
 import { showRootComponent } from "../Common";
+import { SettingsTab } from "./SettingsTab";
 
 interface IHubContentState {
     selectedTabId: string;
@@ -54,9 +55,7 @@ class HubContent extends React.Component<{}, IHubContentState> {
                     tabSize={useCompactPivots ? TabSize.Compact : TabSize.Tall}>
 
                     <Tab name="Overview" id="overview" />
-                    {/* <Tab name="Navigation" id="navigation" />
-                    <Tab name="Extension Data" id="extensionData" />
-                    <Tab name="Messages" id="messages" /> */}
+                    <Tab name="Settings" id="settings" />
                 </TabBar>
 
                 { this.getPageContent() }
@@ -75,15 +74,9 @@ class HubContent extends React.Component<{}, IHubContentState> {
         if (selectedTabId === "overview") {
             return <OverviewTab />;
         }
-       /* else if (selectedTabId === "navigation") {
-            return <NavigationTab />;
+        else if (selectedTabId === "settings"){
+            return <SettingsTab />
         }
-        else if (selectedTabId === "extensionData") {
-            return <ExtensionDataTab />;
-        }
-        else if (selectedTabId === "messages") {
-            return <MessagesTab />;
-        }*/
     }
 
     private getCommandBarItems(): IHeaderCommandBarItem[] {
