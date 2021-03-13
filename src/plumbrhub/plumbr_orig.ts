@@ -1,3 +1,4 @@
+/*
 /// <reference types="vss-web-extension-sdk" />
 
 define(["require", "exports", "VSS/Service", "TFS/Build/RestClient"],
@@ -85,4 +86,4 @@ define(["require", "exports", "VSS/Service", "TFS/Build/RestClient"],
       })();
 
       exports.plmbr = new Plumbr();
-   });
+   });*/
