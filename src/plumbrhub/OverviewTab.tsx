@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as SDK from "azure-devops-extension-sdk";
-import { CommonServiceIds, IProjectPageService, getClient } from "azure-devops-extension-api";
+import { CommonServiceIds, IProjectPageService, getClient, IExtensionDataService, IExtensionDataManager } from "azure-devops-extension-api";
 import * as adoBuild from "azure-devops-extension-api/Build";
 import { BuildRestClient, BuildDefinitionReference, Build, BuildQueryOrder } from "azure-devops-extension-api/Build";
 import { Dropdown } from "azure-devops-ui/Dropdown";
@@ -11,14 +11,16 @@ export interface IOverviewTabState {
     userName: string;
     projectName: string;
     pipelines: BuildDefinitionReference[],
-    selectedPipeline: number,
     branches: string[],
-    selectedBranch: string,
     builds: Build[],
     buildService?: BuildRestClient,
 }
 
 export class OverviewTab extends React.Component<{}, IOverviewTabState> {
+    private dataManager?: IExtensionDataManager;
+
+    private selectedPipeline: number = -1;
+    private selectedBranch: string = "-1";
 
     constructor(props: {}) {
         super(props);
@@ -27,9 +29,7 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
             userName: "",
             projectName: "",
             pipelines: [],
-            selectedPipeline: -1,
             branches: [],
-            selectedBranch: "-1",
             builds: []
         };
     }
@@ -39,7 +39,12 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
     }
 
     private async initializeState(): Promise<void> {
-        await SDK.ready();
+        await SDK.ready();       
+
+        const accessToken = await SDK.getAccessToken();
+        const extDataService = await SDK.getService<IExtensionDataService>(CommonServiceIds.ExtensionDataService);
+
+        this.dataManager = await extDataService.getExtensionDataManager(SDK.getExtensionContext().id, accessToken);
 
         const userName = SDK.getUser().displayName;
         this.setState({
@@ -54,30 +59,51 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
             const buildDefinitions = await buildService.getDefinitions(project.name);
 
             this.setState({ projectName: project.name, pipelines: buildDefinitions, buildService: buildService });
+            
+            var currentPipeline = await this.dataManager?.getValue<number>("CurrentPipeline");
+            var currentBranch = (await this.dataManager?.getValue<string>("CurrentBranch"));
+
+            if (currentPipeline && currentBranch){
+                this.selectedPipeline = currentPipeline;
+                this.selectedBranch = currentBranch;
+
+                await this.loadBuildsForSelectedBranch();
+            }
         }
     }
     
     private onSelectedPipelineChanged = async (event: React.SyntheticEvent<HTMLElement>, item: IListBoxItem<BuildDefinitionReference>): Promise<void> => {       
 
-        if (item.data?.id) {
-            var buildsForDefinition: Build[] = await this.state.buildService?.getBuilds(this.state.projectName, [item.data?.id]) ?? [];
+        if (item.data?.id) {            
+            this.selectedPipeline = item.data.id;
+            this.dataManager?.setValue<number>("CurrentPipeline", this.selectedPipeline);
+
+            var buildsForDefinition: Build[] = await this.state.buildService?.getBuilds(this.state.projectName, [this.selectedPipeline]) ?? [];
 
             var branches: string[] = buildsForDefinition.map((build, index) => (build.sourceBranch));
             var distinctBranches = branches.filter((branch, index) => branches.indexOf(branch) === index);
 
-            this.setState({ selectedPipeline: item.data.id, branches: distinctBranches });
+            this.setState({ branches: distinctBranches });
         }
     }
 
     private onSelectedBranchChanged = async (event: React.SyntheticEvent<HTMLElement>, item: IListBoxItem<string>): Promise<void> => {
 
         if (item.data) {
-            var buildsForBranch: Build[] = await this.state.buildService?.getBuilds(
-                this.state.projectName, [this.state.selectedPipeline], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 10, undefined, undefined, undefined, BuildQueryOrder.StartTimeDescending,  item.data)
-                ?? [];
+            this.selectedBranch = item.data;
+            this.dataManager?.setValue<string>("CurrentBranch", this.selectedBranch);
 
-            this.setState({ selectedBranch: item.data, builds: buildsForBranch })
+            await this.loadBuildsForSelectedBranch();
         }
+    }
+
+    private async loadBuildsForSelectedBranch(){
+        var buildsForBranch: Build[] = await this.state.buildService?.getBuilds(
+            this.state.projectName, [this.selectedPipeline], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 10, undefined, undefined, undefined, BuildQueryOrder.StartTimeDescending,  this.selectedBranch)
+            ?? [];
+
+        this.setState({ builds: buildsForBranch })
+
     }
 
     public render(): JSX.Element {

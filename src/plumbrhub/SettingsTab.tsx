@@ -5,26 +5,42 @@ import * as adoBuild from "azure-devops-extension-api/Build";
 
 import { Button } from "azure-devops-ui/Button";
 import { TextField } from "azure-devops-ui/TextField";
-import { BuildDefinitionReference, BuildRestClient } from "azure-devops-extension-api/Build";
+import { BuildRestClient } from "azure-devops-extension-api/Build";
+import { Card } from "azure-devops-ui/Card";
+
+export interface IStageSettings {
+    stageId: number
+}
+
+export interface IPipelineSettings {
+    pipelineId: number,
+    pipelineName: string,
+    defaultBranch: string,
+    stageSettings: IStageSettings[]
+}
+
+export interface IPlumbrhubSettings {
+    pipelineSettings: IPipelineSettings[]
+}
 
 export interface ISettingsState {
-    defaultPipeline?: string;
-    defaultBranch?: string;
-    buildDefinitions: BuildDefinitionReference[],
+    settings: IPlumbrhubSettings,
     ready?: boolean;
 }
 
 export class SettingsTab extends React.Component<{}, ISettingsState> {
 
-    private readonly DefaultPipelineId: string = "DefaultPipeline";
-    private readonly DefaultBranchId: string = "DefaultBranch";
-
     private dataManager?: IExtensionDataManager;
 
     constructor(props: {}) {
         super(props);
+
+        var defaultSettings: IPlumbrhubSettings = {
+            pipelineSettings: []
+        }
+
         this.state = {
-            buildDefinitions: []
+            settings: defaultSettings
         };
     }
 
@@ -35,68 +51,62 @@ export class SettingsTab extends React.Component<{}, ISettingsState> {
     private async initializeState(): Promise<void> {
         await SDK.ready();
 
-        await this.loadSettings();
+        const accessToken = await SDK.getAccessToken();
+        const extDataService = await SDK.getService<IExtensionDataService>(CommonServiceIds.ExtensionDataService);
 
+        this.dataManager = await extDataService.getExtensionDataManager(SDK.getExtensionContext().id, accessToken);       
+
+        this.dataManager.getValue<IPlumbrhubSettings>("PipelineSettings").then((settings) => {
+            this.setPipelineSettingState(settings);
+        }, () => {
+            this.setPipelineSettingState(this.state.settings);
+        });
+    }
+
+    private async setPipelineSettingState(settings: IPlumbrhubSettings): Promise<void> {
         const projectService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
         const project = await projectService.getProject();
 
         const buildService: BuildRestClient = await getClient(adoBuild.BuildRestClient)
         const buildDefinitions = await buildService.getDefinitions(project?.name ?? "");
 
-        this.setState({ buildDefinitions: buildDefinitions })
-    }
+        buildDefinitions.forEach(buildDef => {
+            if (settings?.pipelineSettings === undefined){
+                settings = {
+                    pipelineSettings: []
+                }
+            }
+            
+            if (!(settings.pipelineSettings.some(s => s.pipelineId === buildDef.id))){
+                settings.pipelineSettings.push({
+                    pipelineId: buildDef.id,
+                    pipelineName: buildDef.name,
+                    defaultBranch: "refs/heads/main",
+                    stageSettings: []
+                });
+            }
+        })
 
-    private async loadSettings(): Promise<void> {
-        const accessToken = await SDK.getAccessToken();
-        const extDataService = await SDK.getService<IExtensionDataService>(CommonServiceIds.ExtensionDataService);
-
-        this.dataManager = await extDataService.getExtensionDataManager(SDK.getExtensionContext().id, accessToken);
-
-        this.dataManager.getValue<string>(this.DefaultPipelineId).then((data) => {
-            this.setState({
-                defaultPipeline: data,
-                ready: true
-            });
-        }, () => {
-            this.setState({
-                defaultPipeline: "",
-                ready: true
-            });
-        });
-
-        this.dataManager.getValue<string>(this.DefaultBranchId).then((data) => {
-            this.setState({
-                defaultBranch: data,
-                ready: true
-            });
-        }, () => {
-            this.setState({
-                defaultBranch: "refs/heads/main",
-                ready: true
-            });
-        });
-
+        this.setState({ ready: true, settings: settings })
     }
 
     public render(): JSX.Element {
-        const { defaultPipeline, defaultBranch, buildDefinitions, ready } = this.state;
+        const { settings, ready } = this.state;
 
         return (
-            <div className="page-content page-content-top flex-row rhythm-horizontal-16">
-                <TextField
-                    label="Default Pipeline"
-                    value={defaultPipeline}
-                    placeholder="Default Pipeline"
-                    onChange={this.onDefaultPipelineChanged}
-                    disabled={!ready}
-                />
-                <TextField
-                    label="Default Branch"
-                    value={defaultBranch}
-                    placeholder="refs/heads/main"
-                    onChange={this.onDefaultBranchChanged}
-                    disabled={!ready}
-                />
+            <div className="page-content page-content-top flex-row rhythm-vertical-16">
+                { settings?.pipelineSettings.map((pipelineSetting, index) => (
+                    <Card
+                        titleProps={{ text: pipelineSetting.pipelineName }}>
+                        <TextField
+                            label="Default Branch"
+                            value={pipelineSetting.defaultBranch}
+                            onChange={(e, newValue) => (settings.pipelineSettings[pipelineSetting.pipelineId].defaultBranch = newValue)}
+                            placeholder="default branch"
+                            disabled={!ready}
+                        />
+                    </Card>
+                ))}
                 <Button
                     text="Save"
                     primary={true}
@@ -107,25 +117,11 @@ export class SettingsTab extends React.Component<{}, ISettingsState> {
         );
     }
 
-    private onDefaultPipelineChanged = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, value: string): void => {
-        this.setState({ defaultPipeline: value });
-    }
-
-    private onDefaultBranchChanged = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, value: string): void => {
-        this.setState({ defaultBranch: value });
-    }
-
     private onSaveData = (): void => {
-        const { defaultPipeline, defaultBranch } = this.state;
+        const { settings } = this.state;
         this.setState({ ready: false });
 
-        this.dataManager!.setValue<string>(this.DefaultPipelineId, defaultPipeline || "").then(() => {
-            this.setState({
-                ready: true,
-            });
-        });
-
-        this.dataManager!.setValue<string>(this.DefaultBranchId, defaultBranch || "").then(() => {
+        this.dataManager!.setValue<IPlumbrhubSettings>("PipelineSettings", settings).then(() => {
             this.setState({
                 ready: true,
             });
