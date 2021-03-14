@@ -37,9 +37,6 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
             
             var stages = buildTimeline?.records.filter((record, index) => record.type === "Stage");
 
-            console.log("Found following Stages:")
-            stages.forEach(stage => console.log(stage.name));
-
             var stageSorter = function(record1: TimelineRecord, record2: TimelineRecord) : number {
                 if (record1.startTime){
                     if (record2.startTime){

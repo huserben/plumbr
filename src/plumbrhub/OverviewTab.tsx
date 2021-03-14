@@ -56,7 +56,7 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
             this.setState({ projectName: project.name, pipelines: buildDefinitions, buildService: buildService });
         }
     }
-
+    
     private onSelectedPipelineChanged = async (event: React.SyntheticEvent<HTMLElement>, item: IListBoxItem<BuildDefinitionReference>): Promise<void> => {       
 
         if (item.data?.id) {

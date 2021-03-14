@@ -3,6 +3,9 @@ import * as React from "react";
 import { Card } from "azure-devops-ui/Card";
 import { IStatusProps, Statuses, Status, StatusSize } from "azure-devops-ui/Status";
 import { IHeaderCommandBarItem } from "azure-devops-ui/HeaderCommandBar";
+import * as SDK from "azure-devops-extension-sdk";
+import { CoreRestClient } from "azure-devops-extension-api/Core";
+import { CommonServiceIds, getClient, IGlobalMessagesService, IHostNavigationService, ILocationService, IProjectPageService } from "azure-devops-extension-api";
 
 export interface IStageComponentProps {
     currentStage: TimelineRecord,
@@ -12,6 +15,7 @@ export interface IStageComponentProps {
 
 export interface IStageComponentState {
     commandBarItems: IHeaderCommandBarItem[],
+    currentStageStage: TimelineRecordState,
     approval?: TimelineRecord
 }
 
@@ -20,7 +24,8 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
         super(props);
 
         this.state = {
-            commandBarItems: []
+            commandBarItems: [],
+            currentStageStage: props.currentStage.state
         }
     }
 
@@ -47,11 +52,9 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
                 commandBarItems.push({
                     important: true,
                     id: "approveStage",
-                    text: "Approve",
+                    text: "Promote",
                     disabled: approval.state !== TimelineRecordState.InProgress,
-                    onActivate: () => {
-                        alert("Approve!");
-                    },
+                    onActivate: () => { this.onApproveStage() },
                     iconProps: {
                         iconName: "TriggerApproval"
                     }
@@ -62,9 +65,53 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
         this.setState({ approval: approval, commandBarItems: commandBarItems });
     }
 
+    private async onApproveStage(): Promise<void> {
+        const accessToken = await SDK.getAccessToken();
+        const service: ILocationService = await SDK.getService(CommonServiceIds.LocationService);
+        const hostBaseUrl = await service.getResourceAreaLocation(CoreRestClient.RESOURCE_AREA_ID);
+        const projectService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
+        const project = await projectService.getProject();
+        var projectId = project?.id ?? "";
+
+        var url = `${hostBaseUrl}${projectId}/_apis/pipelines/approvals/?api-version=6.0-preview`;
+
+        var body = [
+            {
+                approvalId: this.state.approval?.id,
+                status: 4,
+                comment: "Approval by Plumbr"
+            }
+        ]
+
+        await fetch(url, {
+            method: 'PATCH',
+            headers: new Headers({
+                'Authorization': `Basic ${btoa(`:${accessToken}`)}`,
+                'Content-Type': 'application/json'
+            }),
+            body: JSON.stringify(body)
+        })
+
+
+        var adjustedCommandBarItem = this.state.commandBarItems[0]
+        adjustedCommandBarItem.disabled = true;
+
+        this.setState({ currentStageStage: TimelineRecordState.InProgress, commandBarItems: [ adjustedCommandBarItem ] });
+
+        await this.showApprovalSuccessMessage();
+    }
+
+    private showApprovalSuccessMessage = async (): Promise<void> => {
+        const globalMessagesSvc = await SDK.getService<IGlobalMessagesService>(CommonServiceIds.GlobalMessagesService);
+        globalMessagesSvc.addToast({
+            duration: 3000,
+            message: `Successfully approved Stage ${this.props.currentStage.name}`
+        });
+    }
+
     private renderStatus = (className?: string) => {
         var status: IStatusProps = Statuses.Skipped;
-        switch (this.props.currentStage.state) {
+        switch (this.state.currentStageStage) {
             case TimelineRecordState.Completed:
                 switch (this.props.currentStage.result) {
                     case TaskResult.Succeeded:
