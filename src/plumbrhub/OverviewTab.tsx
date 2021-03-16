@@ -1,9 +1,10 @@
 import * as React from "react";
 import * as SDK from "azure-devops-extension-sdk";
-import { CommonServiceIds, IProjectPageService, getClient, IExtensionDataService, IExtensionDataManager } from "azure-devops-extension-api";
+import { CommonServiceIds, IProjectPageService, getClient, IExtensionDataService, IExtensionDataManager, IProjectInfo } from "azure-devops-extension-api";
 import * as adoBuild from "azure-devops-extension-api/Build";
 import { BuildRestClient, BuildDefinitionReference, Build, BuildQueryOrder } from "azure-devops-extension-api/Build";
 import { Dropdown } from "azure-devops-ui/Dropdown";
+import { DropdownSelection } from "azure-devops-ui/Utilities/DropdownSelection";
 import { IListBoxItem } from "azure-devops-ui/ListBox";
 import { PipelineRun } from "./Components/PipelineRun";
 
@@ -13,14 +14,18 @@ export interface IOverviewTabState {
     pipelines: BuildDefinitionReference[],
     branches: string[],
     builds: Build[],
-    buildService?: BuildRestClient,
+    buildService?: BuildRestClient
 }
 
 export class OverviewTab extends React.Component<{}, IOverviewTabState> {
     private dataManager?: IExtensionDataManager;
 
+    private pipelineSelection = new DropdownSelection();
+    private branchSelection = new DropdownSelection();
+
     private selectedPipeline: number = -1;
     private selectedBranch: string = "-1";
+    private project?: IProjectInfo;
 
     constructor(props: {}) {
         super(props);
@@ -52,20 +57,40 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
         });
 
         const projectService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
-        const project = await projectService.getProject();
-        if (project) {
+        this.project = await projectService.getProject();
+        if (this.project) {
             const buildService: BuildRestClient = await getClient(adoBuild.BuildRestClient)
 
-            const buildDefinitions = await buildService.getDefinitions(project.name);
+            const buildDefinitions = await buildService.getDefinitions(this.project.name);
 
-            this.setState({ projectName: project.name, pipelines: buildDefinitions, buildService: buildService });
+            this.setState({ projectName: this.project.name, pipelines: buildDefinitions, buildService: buildService });
             
-            var currentPipeline = await this.dataManager?.getValue<number>("CurrentPipeline");
-            var currentBranch = (await this.dataManager?.getValue<string>("CurrentBranch"));
+            var currentPipeline = await this.dataManager?.getValue<number>(`${this.project.id}_CurrentPipeline`);
+            var currentBranch = (await this.dataManager?.getValue<string>(`${this.project.id}_CurrentBranch`));
 
             if (currentPipeline && currentBranch){
                 this.selectedPipeline = currentPipeline;
                 this.selectedBranch = currentBranch;
+
+                for (var index = 0; index < buildDefinitions.length; index++){
+                    var buildDef = buildDefinitions[index];
+                    
+                    if (buildDef.id === currentPipeline){
+                        console.log(`Default Pipeline Selection: ${buildDef.id} (index ${index})`);
+                        this.pipelineSelection.select(index)
+                        break;
+                    }
+                }
+
+                var branches = await this.loadBranchesForSelectedPipeline();
+                for (var index = 0; index < branches.length; index++){
+                    var branch = branches[index];
+                    if (branch === currentBranch){
+                        console.log(`Default Branch Selection: ${branch} (index ${index})`);
+                        this.branchSelection.select(index);
+                        break;
+                    }
+                }
 
                 await this.loadBuildsForSelectedBranch();
             }
@@ -76,22 +101,28 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
 
         if (item.data?.id) {            
             this.selectedPipeline = item.data.id;
-            this.dataManager?.setValue<number>("CurrentPipeline", this.selectedPipeline);
+            this.dataManager?.setValue<number>(`${this.project?.id}_CurrentPipeline`, this.selectedPipeline);
 
-            var buildsForDefinition: Build[] = await this.state.buildService?.getBuilds(this.state.projectName, [this.selectedPipeline]) ?? [];
+            await this.loadBranchesForSelectedPipeline();
+        }
+    }
+
+    private async loadBranchesForSelectedPipeline():Promise<string[]>{
+        var buildsForDefinition: Build[] = await this.state.buildService?.getBuilds(this.state.projectName, [this.selectedPipeline]) ?? [];
 
             var branches: string[] = buildsForDefinition.map((build, index) => (build.sourceBranch));
             var distinctBranches = branches.filter((branch, index) => branches.indexOf(branch) === index);
 
             this.setState({ branches: distinctBranches });
-        }
+
+            return distinctBranches;
     }
 
     private onSelectedBranchChanged = async (event: React.SyntheticEvent<HTMLElement>, item: IListBoxItem<string>): Promise<void> => {
 
         if (item.data) {
             this.selectedBranch = item.data;
-            this.dataManager?.setValue<string>("CurrentBranch", this.selectedBranch);
+            this.dataManager?.setValue<string>(`${this.project?.id}_CurrentBranch`, this.selectedBranch);
 
             await this.loadBuildsForSelectedBranch();
         }
@@ -124,6 +155,7 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
                                 ))
                             }
                             onSelect={this.onSelectedPipelineChanged}
+                            selection={this.pipelineSelection}
                         />
                     </div>
 
@@ -137,6 +169,7 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
                                 ))
                             }
                             onSelect={this.onSelectedBranchChanged}
+                            selection={this.branchSelection}
                         />
                     </div>
                 </div>
