@@ -9,12 +9,11 @@ import { IListBoxItem } from "azure-devops-ui/ListBox";
 import { PipelineRun } from "./Components/PipelineRun";
 
 export interface IOverviewTabState {
-    userName: string;
     projectName: string;
-    pipelines: BuildDefinitionReference[],
-    branches: string[],
-    builds: Build[],
-    buildService?: BuildRestClient
+    pipelines: BuildDefinitionReference[];
+    branches: string[];
+    builds: Build[];
+    buildService?: BuildRestClient;
 }
 
 export class OverviewTab extends React.Component<{}, IOverviewTabState> {
@@ -31,7 +30,6 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
         super(props);
 
         this.state = {
-            userName: "",
             projectName: "",
             pipelines: [],
             branches: [],
@@ -50,11 +48,6 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
         const extDataService = await SDK.getService<IExtensionDataService>(CommonServiceIds.ExtensionDataService);
 
         this.dataManager = await extDataService.getExtensionDataManager(SDK.getExtensionContext().id, accessToken);
-
-        const userName = SDK.getUser().displayName;
-        this.setState({
-            userName
-        });
 
         const projectService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
         this.project = await projectService.getProject();
@@ -139,16 +132,15 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
 
     public render(): JSX.Element {
 
-        const { userName, projectName, buildService, pipelines, branches, builds } = this.state;
+        const { projectName, buildService, pipelines, branches, builds } = this.state;
 
         return (
             <div className="page-content page-content-top flex-column rhythm-vertical-16">
-                <div>Hello, {userName}!</div>
-                <div className="flex-row flex-center">
-                    <div>
-                        <label htmlFor="pipeline-picker">Pipeline: </label>
+                <div className="flex-row"  style={{ margin: "8px", alignItems: "center" }}>
+                    <div style={{ margin: "8px" }}>
                         <Dropdown<BuildDefinitionReference>
-                            className="margin-left-8"
+                            className="example-dropdown"
+                            placeholder="Pick your Pipeline"
                             items={
                                 pipelines.map((pipeline, index) => (
                                     { id: `${pipeline.id}`, text: pipeline.name, data: pipeline }
@@ -159,10 +151,10 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
                         />
                     </div>
 
-                    <div>
-                        <label htmlFor="branch-picker">Branch: </label>
+                    <div style={{ margin: "8px" }}>
                         <Dropdown<string>
-                            className="margin-left-8"
+                            className="example-dropdown"
+                            placeholder="Pick your Branch"
                             items={
                                 branches.map((branch, index) => (
                                     { id: branch, text: branch, data: branch }
