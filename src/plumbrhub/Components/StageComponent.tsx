@@ -5,7 +5,7 @@ import { IStatusProps, Statuses, Status, StatusSize } from "azure-devops-ui/Stat
 import { IHeaderCommandBarItem } from "azure-devops-ui/HeaderCommandBar";
 import * as SDK from "azure-devops-extension-sdk";
 import { CoreRestClient } from "azure-devops-extension-api/Core";
-import { CommonServiceIds, getClient, IGlobalMessagesService, IHostNavigationService, ILocationService, IProjectPageService } from "azure-devops-extension-api";
+import { CommonServiceIds, getClient, IGlobalMessagesService, IHostNavigationService, IHostPageLayoutService, ILocationService, IProjectPageService } from "azure-devops-extension-api";
 
 export interface IStageComponentProps {
     currentStage: TimelineRecord,
@@ -54,7 +54,7 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
                     id: "approveStage",
                     text: "Promote",
                     disabled: approval.state !== TimelineRecordState.InProgress,
-                    onActivate: () => { this.onApproveStage() },
+                    onActivate: () => { this.onPanelClick() },
                     iconProps: {
                         iconName: "TriggerApproval"
                     }
@@ -64,6 +64,28 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
 
         this.setState({ approval: approval, commandBarItems: commandBarItems });
     }
+
+    private async onPanelClick(): Promise<void> {
+        const panelService = await SDK.getService<IHostPageLayoutService>(CommonServiceIds.HostPageLayoutService);
+        panelService.openPanel<boolean | undefined>(SDK.getExtensionContext().id + ".panel-content", {
+            title: "My Panel",
+            description: "Description of my panel",
+            configuration: {
+                message: "Show header description?",
+                initialValue: "Some Header Description"
+            },
+            onClose: async (result) => {
+                if (result !== undefined) {
+                    console.log("Result is NOT undefined");
+                    await this.onApproveStage();
+                }
+                else{
+                    console.log("Result IS undefined")
+                }
+            }
+        });
+    }
+
 
     private async onApproveStage(): Promise<void> {
         const accessToken = await SDK.getAccessToken();
