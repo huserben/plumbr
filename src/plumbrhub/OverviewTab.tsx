@@ -7,13 +7,14 @@ import { Dropdown } from "azure-devops-ui/Dropdown";
 import { DropdownSelection } from "azure-devops-ui/Utilities/DropdownSelection";
 import { IListBoxItem } from "azure-devops-ui/ListBox";
 import { PipelineRun } from "./Components/PipelineRun";
+import { Spinner, SpinnerSize } from "azure-devops-ui/Spinner";
 
 export interface IOverviewTabState {
-    projectName: string;
     pipelines: BuildDefinitionReference[];
     branches: string[];
     builds: Build[];
     buildService?: BuildRestClient;
+    ready: boolean;
 }
 
 export class OverviewTab extends React.Component<{}, IOverviewTabState> {
@@ -30,10 +31,10 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
         super(props);
 
         this.state = {
-            projectName: "",
             pipelines: [],
             branches: [],
-            builds: []
+            builds: [],
+            ready: false
         };
     }
 
@@ -42,7 +43,7 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
     }
 
     private async initializeState(): Promise<void> {
-        await SDK.ready();       
+        await SDK.ready();
 
         const accessToken = await SDK.getAccessToken();
         const extDataService = await SDK.getService<IExtensionDataService>(CommonServiceIds.ExtensionDataService);
@@ -56,19 +57,19 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
 
             const buildDefinitions = await buildService.getDefinitions(this.project.name);
 
-            this.setState({ projectName: this.project.name, pipelines: buildDefinitions, buildService: buildService });
-            
+            this.setState({ pipelines: buildDefinitions, buildService: buildService, ready: true });
+
             var currentPipeline = await this.dataManager?.getValue<number>(`${this.project.id}_CurrentPipeline`);
             var currentBranch = (await this.dataManager?.getValue<string>(`${this.project.id}_CurrentBranch`));
 
-            if (currentPipeline && currentBranch){
+            if (currentPipeline && currentBranch) {
                 this.selectedPipeline = currentPipeline;
                 this.selectedBranch = currentBranch;
 
-                for (var index = 0; index < buildDefinitions.length; index++){
+                for (var index = 0; index < buildDefinitions.length; index++) {
                     var buildDef = buildDefinitions[index];
-                    
-                    if (buildDef.id === currentPipeline){
+
+                    if (buildDef.id === currentPipeline) {
                         console.log(`Default Pipeline Selection: ${buildDef.id} (index ${index})`);
                         this.pipelineSelection.select(index)
                         break;
@@ -76,9 +77,9 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
                 }
 
                 var branches = await this.loadBranchesForSelectedPipeline();
-                for (var index = 0; index < branches.length; index++){
+                for (var index = 0; index < branches.length; index++) {
                     var branch = branches[index];
-                    if (branch === currentBranch){
+                    if (branch === currentBranch) {
                         console.log(`Default Branch Selection: ${branch} (index ${index})`);
                         this.branchSelection.select(index);
                         break;
@@ -89,10 +90,10 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
             }
         }
     }
-    
-    private onSelectedPipelineChanged = async (event: React.SyntheticEvent<HTMLElement>, item: IListBoxItem<BuildDefinitionReference>): Promise<void> => {       
 
-        if (item.data?.id) {            
+    private onSelectedPipelineChanged = async (event: React.SyntheticEvent<HTMLElement>, item: IListBoxItem<BuildDefinitionReference>): Promise<void> => {
+
+        if (item.data?.id) {
             this.selectedPipeline = item.data.id;
             this.dataManager?.setValue<number>(`${this.project?.id}_CurrentPipeline`, this.selectedPipeline);
 
@@ -100,15 +101,15 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
         }
     }
 
-    private async loadBranchesForSelectedPipeline():Promise<string[]>{
-        var buildsForDefinition: Build[] = await this.state.buildService?.getBuilds(this.state.projectName, [this.selectedPipeline]) ?? [];
+    private async loadBranchesForSelectedPipeline(): Promise<string[]> {
+        var buildsForDefinition: Build[] = await this.state.buildService?.getBuilds(this.project?.name ?? "", [this.selectedPipeline]) ?? [];
 
-            var branches: string[] = buildsForDefinition.map((build, index) => (build.sourceBranch));
-            var distinctBranches = branches.filter((branch, index) => branches.indexOf(branch) === index);
+        var branches: string[] = buildsForDefinition.map((build, index) => (build.sourceBranch));
+        var distinctBranches = branches.filter((branch, index) => branches.indexOf(branch) === index);
 
-            this.setState({ branches: distinctBranches });
+        this.setState({ branches: distinctBranches });
 
-            return distinctBranches;
+        return distinctBranches;
     }
 
     private onSelectedBranchChanged = async (event: React.SyntheticEvent<HTMLElement>, item: IListBoxItem<string>): Promise<void> => {
@@ -121,9 +122,9 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
         }
     }
 
-    private async loadBuildsForSelectedBranch(){
+    private async loadBuildsForSelectedBranch() {
         var buildsForBranch: Build[] = await this.state.buildService?.getBuilds(
-            this.state.projectName, [this.selectedPipeline], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 10, undefined, undefined, undefined, BuildQueryOrder.StartTimeDescending,  this.selectedBranch)
+            this.project?.name ?? "", [this.selectedPipeline], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 10, undefined, undefined, undefined, BuildQueryOrder.StartTimeDescending, this.selectedBranch)
             ?? [];
 
         this.setState({ builds: buildsForBranch })
@@ -132,48 +133,58 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
 
     public render(): JSX.Element {
 
-        const { projectName, buildService, pipelines, branches, builds } = this.state;
+        const { buildService, pipelines, branches, builds, ready } = this.state;
 
-        return (
-            <div className="page-content page-content-top flex-column rhythm-vertical-16">
-                <div className="flex-row"  style={{ margin: "8px", alignItems: "center" }}>
-                    <div style={{ margin: "8px" }}>
-                        <Dropdown<BuildDefinitionReference>
-                            className="example-dropdown"
-                            placeholder="Pick your Pipeline"
-                            items={
-                                pipelines.map((pipeline, index) => (
-                                    { id: `${pipeline.id}`, text: pipeline.name, data: pipeline }
-                                ))
-                            }
-                            onSelect={this.onSelectedPipelineChanged}
-                            selection={this.pipelineSelection}
-                        />
-                    </div>
-
-                    <div style={{ margin: "8px" }}>
-                        <Dropdown<string>
-                            className="example-dropdown"
-                            placeholder="Pick your Branch"
-                            items={
-                                branches.map((branch, index) => (
-                                    { id: branch, text: branch, data: branch }
-                                ))
-                            }
-                            onSelect={this.onSelectedBranchChanged}
-                            selection={this.branchSelection}
-                        />
+        if (!ready) {
+            return (
+                <div className="page-content flex-center">
+                    <div className="flex-row">
+                        <Spinner label="Loading" size={SpinnerSize.large} />
                     </div>
                 </div>
+            )
+        } else {
+            return (
+                <div className="page-content page-content-top flex-column rhythm-vertical-16">
+                    <div className="flex-row" style={{ margin: "8px", alignItems: "center" }}>
+                        <div style={{ margin: "8px" }}>
+                            <Dropdown<BuildDefinitionReference>
+                                className="example-dropdown"
+                                placeholder="Pick your Pipeline"
+                                items={
+                                    pipelines.map((pipeline, index) => (
+                                        { id: `${pipeline.id}`, text: pipeline.name, data: pipeline }
+                                    ))
+                                }
+                                onSelect={this.onSelectedPipelineChanged}
+                                selection={this.pipelineSelection}
+                            />
+                        </div>
+
+                        <div style={{ margin: "8px" }}>
+                            <Dropdown<string>
+                                className="example-dropdown"
+                                placeholder="Pick your Branch"
+                                items={
+                                    branches.map((branch, index) => (
+                                        { id: branch, text: branch, data: branch }
+                                    ))
+                                }
+                                onSelect={this.onSelectedBranchChanged}
+                                selection={this.branchSelection}
+                            />
+                        </div>
+                    </div>
 
 
-                {builds.map((build, index) => (
-                    <PipelineRun
-                     build={build}
-                     buildService={buildService}
-                     projectName={projectName} />
-                ))}
-            </div>
-        );
+                    {builds.map((build, index) => (
+                        <PipelineRun
+                            build={build}
+                            buildService={buildService}
+                            projectName={this.project?.name ?? ""} />
+                    ))}
+                </div>
+            );
+        }
     }
 }
