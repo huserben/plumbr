@@ -8,6 +8,7 @@ import { DropdownSelection } from "azure-devops-ui/Utilities/DropdownSelection";
 import { IListBoxItem } from "azure-devops-ui/ListBox";
 import { PipelineRun } from "./Components/PipelineRun";
 import { Spinner, SpinnerSize } from "azure-devops-ui/Spinner";
+import { ISettingsService, SettingsService } from "./Services/SettingsService";
 
 export interface IOverviewTabState {
     pipelines: BuildDefinitionReference[];
@@ -18,7 +19,8 @@ export interface IOverviewTabState {
 }
 
 export class OverviewTab extends React.Component<{}, IOverviewTabState> {
-    private dataManager?: IExtensionDataManager;
+
+    private settingsService?: ISettingsService;
 
     private pipelineSelection = new DropdownSelection();
     private branchSelection = new DropdownSelection();
@@ -45,10 +47,7 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
     private async initializeState(): Promise<void> {
         await SDK.ready();
 
-        const accessToken = await SDK.getAccessToken();
-        const extDataService = await SDK.getService<IExtensionDataService>(CommonServiceIds.ExtensionDataService);
-
-        this.dataManager = await extDataService.getExtensionDataManager(SDK.getExtensionContext().id, accessToken);
+        this.settingsService = await SettingsService.getInstance();
 
         const projectService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
         this.project = await projectService.getProject();
@@ -58,9 +57,9 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
             const buildDefinitions = await buildService.getDefinitions(this.project.name);
 
             this.setState({ pipelines: buildDefinitions, buildService: buildService, ready: true });
-
-            var currentPipeline = await this.dataManager?.getValue<number>(`${this.project.id}_CurrentPipeline`);
-            var currentBranch = (await this.dataManager?.getValue<string>(`${this.project.id}_CurrentBranch`));
+            
+            var currentPipeline = await this.settingsService.getCurrentPipeline();
+            var currentBranch = await this.settingsService.getCurrentBranch();
 
             if (currentPipeline && currentBranch) {
                 this.selectedPipeline = currentPipeline;
@@ -95,7 +94,8 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
 
         if (item.data?.id) {
             this.selectedPipeline = item.data.id;
-            this.dataManager?.setValue<number>(`${this.project?.id}_CurrentPipeline`, this.selectedPipeline);
+
+            this.settingsService?.setCurrentPipeline(this.selectedPipeline);
 
             await this.loadBranchesForSelectedPipeline();
         }
@@ -116,7 +116,8 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
 
         if (item.data) {
             this.selectedBranch = item.data;
-            this.dataManager?.setValue<string>(`${this.project?.id}_CurrentBranch`, this.selectedBranch);
+
+            this.settingsService?.setCurrentBranch(this.selectedBranch);
 
             await this.loadBuildsForSelectedBranch();
         }
