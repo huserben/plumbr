@@ -4,7 +4,6 @@ import { Card } from "azure-devops-ui/Card";
 import { IStatusProps, Statuses, Status, StatusSize } from "azure-devops-ui/Status";
 import { IHeaderCommandBarItem } from "azure-devops-ui/HeaderCommandBar";
 import * as SDK from "azure-devops-extension-sdk";
-import { CoreRestClient } from "azure-devops-extension-api/Core";
 import { CommonServiceIds, IGlobalMessagesService, IHostPageLayoutService, ILocationService, IProjectPageService } from "azure-devops-extension-api";
 import { BuildService, IBuildService } from "../Services/BuildService";
 

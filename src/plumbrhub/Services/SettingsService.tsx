@@ -7,6 +7,9 @@ export interface ISettingsService {
 
     getCurrentBranch(): Promise<string>;
     setCurrentBranch(branch: string): Promise<void>;
+
+    getIgnoredStagesForPipeline(pipelineId: number): Promise<string[]>;
+    saveIgnoredStagesForPipeline(pipelineId: number, ignoredStages: string[]):Promise<void>;
 }
 
 export class SettingsService implements ISettingsService {
@@ -17,6 +20,8 @@ export class SettingsService implements ISettingsService {
 
     private currentPipelineId: string = "";
     private currentBranchId: string = "";
+
+    private pipelineSettingPrefix : string = "";
 
     private constructor() {
 
@@ -35,6 +40,7 @@ export class SettingsService implements ISettingsService {
 
         this.currentPipelineId = `${project?.id}_CurrentPipeline`;
         this.currentBranchId = `${project?.id}_CurrentBranch`;
+        this.pipelineSettingPrefix = `${project?.id}_Pipelines`
     }
 
     public static async getInstance(): Promise<ISettingsService> {
@@ -74,5 +80,19 @@ export class SettingsService implements ISettingsService {
 
     public async setCurrentBranch(branch: string): Promise<void> {
         await this.dataManager?.setValue<string>(this.currentBranchId, branch);
+    }
+
+    public async getIgnoredStagesForPipeline(pipelineId: number): Promise<string[]> {
+        var ignoredStages = await this.dataManager?.getValue<string[]>(`${this.pipelineSettingPrefix}_${pipelineId}_IgnoredStages`);
+
+        if (ignoredStages){
+            return ignoredStages;
+        }
+
+        return [];
+    }
+
+    public async saveIgnoredStagesForPipeline(pipelineId: number, ignoredStages: string[]):Promise<void>{
+        await this.dataManager?.setValue<string[]>(`${this.pipelineSettingPrefix}_${pipelineId}_IgnoredStages`, ignoredStages);
     }
 }

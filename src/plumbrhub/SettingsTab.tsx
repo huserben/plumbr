@@ -3,6 +3,8 @@ import * as React from "react";
 import { BuildDefinitionReference } from "azure-devops-extension-api/Build";
 import { Card } from "azure-devops-ui/Card";
 import { BuildService, IBuildService } from "./Services/BuildService";
+import { TextField } from "azure-devops-ui/TextField";
+import { PipelineSetting } from "./Components/PipelineSetting";
 
 export interface ISettingsState {
     buildPipelines: BuildDefinitionReference[]
@@ -41,9 +43,7 @@ export class SettingsTab extends React.Component<{}, ISettingsState> {
         return (
             <div className="page-content page-content-top flex-column rhythm-vertical-16">
                 { buildPipelines.map((pipeline, index) => (
-                    <Card
-                        titleProps={{ text: pipeline.name }}>
-                    </Card>
+                    <PipelineSetting buildDefinition={pipeline} />
                 ))}
             </div>
         );
