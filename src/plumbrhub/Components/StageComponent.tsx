@@ -1,16 +1,16 @@
-import { BuildRestClient, TaskResult, TimelineRecord, TimelineRecordState } from "azure-devops-extension-api/Build";
+import { TaskResult, TimelineRecord, TimelineRecordState } from "azure-devops-extension-api/Build";
 import * as React from "react";
 import { Card } from "azure-devops-ui/Card";
 import { IStatusProps, Statuses, Status, StatusSize } from "azure-devops-ui/Status";
 import { IHeaderCommandBarItem } from "azure-devops-ui/HeaderCommandBar";
 import * as SDK from "azure-devops-extension-sdk";
 import { CoreRestClient } from "azure-devops-extension-api/Core";
-import { CommonServiceIds, getClient, IGlobalMessagesService, IHostNavigationService, IHostPageLayoutService, ILocationService, IProjectPageService } from "azure-devops-extension-api";
+import { CommonServiceIds, IGlobalMessagesService, IHostPageLayoutService, ILocationService, IProjectPageService } from "azure-devops-extension-api";
+import { BuildService, IBuildService } from "../Services/BuildService";
 
 export interface IStageComponentProps {
     currentStage: TimelineRecord,
-    timelineRecords: TimelineRecord[],
-    buildService?: BuildRestClient
+    timelineRecords: TimelineRecord[]
 }
 
 export interface IStageComponentState {
@@ -20,6 +20,8 @@ export interface IStageComponentState {
 }
 
 export class StageComponent extends React.Component<IStageComponentProps, IStageComponentState> {
+    private buildService?: IBuildService;
+
     constructor(props: IStageComponentProps) {
         super(props);
 
@@ -34,32 +36,22 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
     }
 
     public async initializeState(): Promise<void> {
-        var approval: TimelineRecord | undefined = undefined;
+        this.buildService = await BuildService.getInstance();
+
         var commandBarItems: IHeaderCommandBarItem[] = [];
+        var approval: TimelineRecord | undefined = this.buildService.getApprovalForStage(this.props.timelineRecords, this.props.currentStage);
 
-        var checkPoints = this.props.timelineRecords.filter((record, index) => (
-            record.parentId === this.props.currentStage.id && record.type === "Checkpoint")
-        );
-
-        if (checkPoints.length === 1) {
-            var checkPoint = checkPoints[0];
-
-            var approvals = this.props.timelineRecords.filter((record, index) => record.parentId === checkPoint.id && record.type === "Checkpoint.Approval")
-
-            if (approvals.length === 1) {
-                approval = approvals[0];
-
-                commandBarItems.push({
-                    important: true,
-                    id: "approveStage",
-                    text: "Promote",
-                    disabled: approval.state !== TimelineRecordState.InProgress,
-                    onActivate: () => { this.onPanelClick() },
-                    iconProps: {
-                        iconName: "TriggerApproval"
-                    }
-                });
-            }
+        if (approval) {
+            commandBarItems.push({
+                important: true,
+                id: "approveStage",
+                text: "Promote",
+                disabled: approval.state !== TimelineRecordState.InProgress,
+                onActivate: () => { this.onPanelClick() },
+                iconProps: {
+                    iconName: "TriggerApproval"
+                }
+            });
         }
 
         this.setState({ approval: approval, commandBarItems: commandBarItems });
@@ -77,9 +69,9 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
             onClose: async (result) => {
                 if (result !== undefined) {
                     console.log("Result is NOT undefined");
-                    await this.onApproveStage();
+                    await this.onApproveStage("Whatever Comment for approval");
                 }
-                else{
+                else {
                     console.log("Result IS undefined")
                 }
             }
@@ -87,40 +79,17 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
     }
 
 
-    private async onApproveStage(): Promise<void> {
-        const accessToken = await SDK.getAccessToken();
-        const service: ILocationService = await SDK.getService(CommonServiceIds.LocationService);
-        const hostBaseUrl = await service.getResourceAreaLocation(CoreRestClient.RESOURCE_AREA_ID);
-        const projectService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
-        const project = await projectService.getProject();
-        var projectId = project?.id ?? "";
+    private async onApproveStage(approvalComment: string): Promise<void> {
+        if (this.state.approval) {
+            this.buildService?.approveStage(this.state.approval, approvalComment)
 
-        var url = `${hostBaseUrl}${projectId}/_apis/pipelines/approvals/?api-version=6.0-preview`;
+            var adjustedCommandBarItem = this.state.commandBarItems[0]
+            adjustedCommandBarItem.disabled = true;
 
-        var body = [
-            {
-                approvalId: this.state.approval?.id,
-                status: 4,
-                comment: "Approval by Plumbr"
-            }
-        ]
+            this.setState({ currentStageStage: TimelineRecordState.InProgress, commandBarItems: [adjustedCommandBarItem] });
 
-        await fetch(url, {
-            method: 'PATCH',
-            headers: new Headers({
-                'Authorization': `Basic ${btoa(`:${accessToken}`)}`,
-                'Content-Type': 'application/json'
-            }),
-            body: JSON.stringify(body)
-        })
-
-
-        var adjustedCommandBarItem = this.state.commandBarItems[0]
-        adjustedCommandBarItem.disabled = true;
-
-        this.setState({ currentStageStage: TimelineRecordState.InProgress, commandBarItems: [ adjustedCommandBarItem ] });
-
-        await this.showApprovalSuccessMessage();
+            await this.showApprovalSuccessMessage();
+        }
     }
 
     private showApprovalSuccessMessage = async (): Promise<void> => {

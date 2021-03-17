@@ -1,15 +1,14 @@
-import { Build, BuildRestClient, BuildResult, BuildStatus, Timeline, TimelineRecord } from "azure-devops-extension-api/Build";
 import * as React from "react";
 import { Page } from "azure-devops-ui/Page";
 import { CustomHeader, HeaderDescription, HeaderIcon, HeaderTitle, HeaderTitleArea, HeaderTitleRow, TitleSize } from "azure-devops-ui/Header";
 import { IStatusProps, Statuses, Status, StatusSize } from "azure-devops-ui/Status";
 import { StageComponent } from "./StageComponent";
 import { Link } from "azure-devops-ui/Link";
+import { Build, BuildResult, BuildStatus, Timeline, TimelineRecord } from "azure-devops-extension-api/Build";
+import { BuildService, IBuildService } from "../Services/BuildService";
 
 export interface IPipelineRunProps {
-    build: Build,
-    projectName: string,
-    buildService?: BuildRestClient
+    build: Build
 }
 
 export interface IPipelineRunState {
@@ -18,6 +17,8 @@ export interface IPipelineRunState {
 }
 
 export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRunState> {
+    private buildService?: IBuildService;
+
     constructor(props: IPipelineRunProps) {
         super(props);
 
@@ -32,14 +33,16 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
     }
 
     public async initializeState(): Promise<void> {
-        if (this.props.buildService){
-            var buildTimeline : Timeline = await this.props.buildService.getBuildTimeline(this.props.projectName, this.props.build.id);
-            
-            var stages = buildTimeline?.records.filter((record, index) => record.type === "Stage");
+        this.buildService = await BuildService.getInstance();
 
-            var stageSorter = function(record1: TimelineRecord, record2: TimelineRecord) : number {
-                if (record1.startTime){
-                    if (record2.startTime){
+        if (this.buildService) {
+            var buildTimeline = await this.buildService.getTimelineForBuild(this.props.build.id);
+
+            var stages = buildTimeline?.records.filter((record, index) => record.type === "Stage") ?? [];
+
+            var stageSorter = function (record1: TimelineRecord, record2: TimelineRecord): number {
+                if (record1.startTime) {
+                    if (record2.startTime) {
                         if (record1.startTime > record2.startTime) return 1;
                         if (record1.startTime < record2.startTime) return -1;
                         return 0;
@@ -48,7 +51,7 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
                     return -1;
                 }
 
-                if(record2.startTime){
+                if (record2.startTime) {
                     return 1
                 }
 
@@ -118,7 +121,7 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
                 <div className="page-content page-content-top flex-row rhythm-horizontal-16">
                     {
                         stages.map((stage, index) => (
-                            <StageComponent currentStage={stage} timelineRecords={timelineRecords} buildService={this.props.buildService} />
+                            <StageComponent currentStage={stage} timelineRecords={timelineRecords} />
                         ))
                     }
                 </div>
