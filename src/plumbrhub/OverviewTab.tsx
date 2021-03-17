@@ -80,11 +80,15 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
     }
 
     private onSelectedPipelineChanged = async (event: React.SyntheticEvent<HTMLElement>, item: IListBoxItem<BuildDefinitionReference>): Promise<void> => {
-
         if (item.data?.id) {
             this.selectedPipeline = item.data.id;
-
             this.settingsService?.setCurrentPipeline(this.selectedPipeline);
+            
+            this.selectedBranch = "";
+            this.branchSelection.select(-1);
+            this.settingsService?.setCurrentBranch(this.selectedBranch);
+
+            this.setState({builds: []});
 
             await this.loadBranchesForSelectedPipeline();
         }
