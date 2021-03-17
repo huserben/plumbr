@@ -13,7 +13,8 @@ export interface IPipelineRunProps {
 
 export interface IPipelineRunState {
     stages: TimelineRecord[],
-    timelineRecords: TimelineRecord[]
+    timelineRecords: TimelineRecord[],
+    buildMessage: string
 }
 
 export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRunState> {
@@ -24,7 +25,8 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
 
         this.state = {
             stages: [],
-            timelineRecords: []
+            timelineRecords: [],
+            buildMessage: ""
         }
     }
 
@@ -33,6 +35,10 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
     }
 
     public async initializeState(): Promise<void> {
+        if ("ci.message" in this.props.build.triggerInfo) {
+            this.setState({ buildMessage: this.props.build.triggerInfo["ci.message"] })
+        }
+
         this.buildService = await BuildService.getInstance();
 
         if (this.buildService) {
@@ -96,7 +102,7 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
 
     public render(): JSX.Element {
 
-        const { stages, timelineRecords } = this.state;
+        const { buildMessage, stages, timelineRecords } = this.state;
 
         return (
             <Page>
@@ -113,7 +119,8 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
                             </HeaderTitle>
                         </HeaderTitleRow>
                         <HeaderDescription>
-                            <Link href={this.props.build._links.web.href}>Build {this.props.build.id}</Link>
+
+                            <Link href={this.props.build._links.web.href}>{buildMessage} (Build {this.props.build.id})</Link>
                         </HeaderDescription>
                     </HeaderTitleArea>
                 </CustomHeader>
