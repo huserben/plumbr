@@ -46,7 +46,7 @@ export class IgnoredPiplineStage extends React.Component<IIgnoredPipelineStagePr
         const { ignoredStages } = this.state;
 
         return (
-            <div style={{ display: "flex-column", width: "40%" }}>
+            <div style={{ display: "flex-column", width: "30%" }}>
                 <FormItem label="Stage to Ignore:">
                     <TextField
                         value={this.stageToIgnore}
