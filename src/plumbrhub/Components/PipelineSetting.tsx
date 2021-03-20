@@ -2,7 +2,7 @@ import { BuildDefinitionReference } from "azure-devops-extension-api/Build";
 import { Card } from "azure-devops-ui/Card";
 import React from "react";
 import { IgnoredPiplineStage } from "./IgnoredPipelineStage";
-import PipelineStageConfiguration from "./PipelineStageConfiguration";
+import { PipelineStagesConfiguration } from "./PipelineStagesConfiguration";
 
 export interface IPipelineSettingProps {
     buildDefinition: BuildDefinitionReference,
@@ -22,7 +22,7 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps> {
         return (
             <Card
                 titleProps={{ text: this.props.buildDefinition.name }}>
-                <PipelineStageConfiguration buildDefinition={this.props.buildDefinition} />
+                <PipelineStagesConfiguration buildDefinition={this.props.buildDefinition} />
                 <IgnoredPiplineStage buildDefinition={this.props.buildDefinition} />
             </Card>
         );

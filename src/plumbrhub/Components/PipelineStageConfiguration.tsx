@@ -15,22 +15,16 @@ import { IListItemDetails, List, ListItem, ListSelection } from "azure-devops-ui
 import { ArrayItemProvider, IItemProvider } from "azure-devops-ui/Utilities/Provider";
 
 export interface IPipelineStageConfigurationProps {
-    buildDefinition: BuildDefinitionReference,
+    stagesWithConfig: ArrayItemProvider<string>,
+    selectedItem: ObservableValue<string>
 }
 
 
 const PipelineStageConfiguration: React.FunctionComponent<IPipelineStageConfigurationProps> = (props) => {
-
-    //const settingsService = await SettingsService.getInstance();
-    //var ignoredStages = await this.settingsService.getIgnoredStagesForPipeline(this.props.buildDefinition.id);
-    var stagesWithConfig = ["Stage2", "Stage3", "Stage 12", "42", "1337"];
-
-    const [selection] = React.useState(new ListSelection({ selectOnFocus: false }));
-    const [itemProvider] = React.useState(new ArrayItemProvider(stagesWithConfig));
-    const [selectedItemObservable] = React.useState(new ObservableValue<string>(stagesWithConfig[0]));
+    const [selection] = React.useState(new ListSelection({ selectOnFocus: false }));    
 
     React.useEffect(() => {
-        bindSelectionToObservable(selection, itemProvider, selectedItemObservable);
+        bindSelectionToObservable(selection, props.stagesWithConfig, props.selectedItem);
     });
 
     return (
@@ -39,10 +33,9 @@ const PipelineStageConfiguration: React.FunctionComponent<IPipelineStageConfigur
             <div className="master-example-scroll-container flex-row">
                 <SingleLayerMasterPanel
                     className="master-example-panel show-on-small-screens"
-                    renderHeader={reanderHeader}
-                    renderContent={() => renderContent(selection, itemProvider)}
+                    renderContent={() => renderContent(selection, props.stagesWithConfig)}
                 />
-                <Observer selectedItem={selectedItemObservable}>
+                <Observer selectedItem={props.selectedItem}>
                     {(observerProps: { selectedItem: string }) => (
                         <Page className="flex-grow single-layer-details">
                             {observerProps.selectedItem && (
@@ -59,10 +52,6 @@ const PipelineStageConfiguration: React.FunctionComponent<IPipelineStageConfigur
         </div>
     );
 };
-
-const reanderHeader = () => {
-    return <SingleLayerMasterPanelHeader title="Stages with Configuration" />;
-}
 
 const renderContent = (selection: ListSelection, itemProvider: IItemProvider<string>) => {
     return (

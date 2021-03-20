@@ -3,7 +3,7 @@ import { Button } from "azure-devops-ui/Button";
 import { ObservableValue } from "azure-devops-ui/Core/Observable";
 import { FormItem } from "azure-devops-ui/FormItem";
 import { IListItemDetails, ListItem, ScrollableList } from "azure-devops-ui/List";
-import { TextField } from "azure-devops-ui/TextField";
+import { TextField, TextFieldWidth } from "azure-devops-ui/TextField";
 import { ArrayItemProvider } from "azure-devops-ui/Utilities/Provider";
 import React from "react";
 import { ISettingsService, SettingsService } from "../Services/SettingsService";
@@ -50,6 +50,7 @@ export class IgnoredPiplineStage extends React.Component<IIgnoredPipelineStagePr
                 <FormItem label="Stage to Ignore:">
                     <TextField
                         value={this.stageToIgnore}
+                        width={TextFieldWidth.standard}
                         onChange={(e, newValue) => (this.stageToIgnore.value = newValue)}
                     />
                 </FormItem>
