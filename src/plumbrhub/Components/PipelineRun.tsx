@@ -6,6 +6,7 @@ import { StageComponent } from "./StageComponent";
 import { Link } from "azure-devops-ui/Link";
 import { Build, BuildResult, BuildStatus, Timeline, TimelineRecord } from "azure-devops-extension-api/Build";
 import { BuildService, IBuildService } from "../Services/BuildService";
+import { ISettingsService, SettingsService } from "../Services/SettingsService";
 
 export interface IPipelineRunProps {
     build: Build
@@ -19,6 +20,7 @@ export interface IPipelineRunState {
 
 export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRunState> {
     private buildService?: IBuildService;
+    private settingsService?: ISettingsService;
 
     constructor(props: IPipelineRunProps) {
         super(props);
@@ -40,11 +42,14 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
         }
 
         this.buildService = await BuildService.getInstance();
+        this.settingsService = await SettingsService.getInstance();
 
-        if (this.buildService) {
+        if (this.buildService && this.settingsService) {
             var buildTimeline = await this.buildService.getTimelineForBuild(this.props.build.id);
 
-            var stages = buildTimeline?.records.filter((record, index) => record.type === "Stage") ?? [];
+            var stagesToIgnore = await this.settingsService.getIgnoredStagesForPipeline(this.props.build.definition.id);
+
+            var stages = buildTimeline?.records.filter((record, index) => record.type === "Stage" && !stagesToIgnore.includes(record.identifier)) ?? [];
 
             var stageSorter = function (record1: TimelineRecord, record2: TimelineRecord): number {
                 if (record1.startTime) {

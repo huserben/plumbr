@@ -5,8 +5,9 @@ import { IListItemDetails, ListItem, ScrollableList } from "azure-devops-ui/List
 import { TextField } from "azure-devops-ui/TextField";
 import { ArrayItemProvider } from "azure-devops-ui/Utilities/Provider";
 import React from "react";
-import { BuildService, IBuildService } from "../Services/BuildService";
 import { ISettingsService, SettingsService } from "../Services/SettingsService";
+import { FormItem } from "azure-devops-ui/FormItem";
+import { ObservableValue } from "azure-devops-ui/Core/Observable";
 
 export interface IPipelineSettingProps {
     buildDefinition: BuildDefinitionReference,
@@ -18,7 +19,8 @@ export interface IPipelineSettingState {
 
 export class PipelineSetting extends React.Component<IPipelineSettingProps, IPipelineSettingState> {
     private settingsService?: ISettingsService;
-    private buildService?: IBuildService;
+
+    private stageToIgnore = new ObservableValue<string>("");
 
     constructor(props: IPipelineSettingProps) {
         super(props);
@@ -34,7 +36,6 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
 
     public async initializeState(): Promise<void> {
         this.settingsService = await SettingsService.getInstance();
-        this.buildService = await BuildService.getInstance();
 
         var ignoredStages = await this.settingsService.getIgnoredStagesForPipeline(this.props.buildDefinition.id);
         this.setState({ ignoredStages: new ArrayItemProvider(ignoredStages) });
@@ -47,41 +48,51 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
         return (
             <Card
                 titleProps={{ text: this.props.buildDefinition.name }}>
-                <div style={{ display: "flex", height: "300px" }}>
+                <div style={{ display: "flex-column", width: "30%" }}>
                     <div>
-                        <TextField />
+                        <FormItem label="Stage to Ignore:">
+                            <TextField                                
+                                value={this.stageToIgnore}
+                                onChange={(e, newValue) => (this.stageToIgnore.value = newValue)}
+                            />
+                        </FormItem>
                         <Button
                             ariaLabel="Add"
                             iconProps={{ iconName: "Add" }}
-                            onClick={() => this.addIgnoredStage()}
+                            onClick={async () => await this.addIgnoredStage()}
                         />
+                        <div style={{ display: "flex", height: "300px" }}>
+                            <ScrollableList
+                                itemProvider={ignoredStages}
+                                width="100%"
+                                renderRow={this.renderRow}
+                            />
+                        </div>
                     </div>
-
-                    <ScrollableList
-                        itemProvider={ignoredStages}
-                        width="100%"
-                        renderRow={this.renderRow}
-                    />
                 </div>
             </Card>
         );
     }
 
-    private addIgnoredStage(): void {
-        var ignoredStage = "12";
+    private async addIgnoredStage(): Promise<void> {
         var ignoredStages = this.state.ignoredStages.value;
-        ignoredStages.push(ignoredStage);
+        ignoredStages.push(this.stageToIgnore.value);
 
         this.setState({ ignoredStages: new ArrayItemProvider(ignoredStages) })
+        this.stageToIgnore.value = "";
+
+        await this.settingsService?.setIgnoredStagesForPipeline(this.props.buildDefinition.id, ignoredStages);
     }
 
-    private removeIgnoredStage(stageToRemove: string): void {
+    private async removeIgnoredStage(stageToRemove: string): Promise<void> {
         var ignoredStages = this.state.ignoredStages.value;
         const index = ignoredStages.indexOf(stageToRemove, 0);
         if (index > -1) {
             ignoredStages.splice(index, 1);
 
             this.setState({ ignoredStages: new ArrayItemProvider(ignoredStages) })
+
+            await this.settingsService?.setIgnoredStagesForPipeline(this.props.buildDefinition.id, ignoredStages);
         }
     }
 
@@ -100,9 +111,10 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
                         <span className="text-ellipsis">{item}</span>
                     </div>
                     <Button
+                        style={{ marginLeft: "50px", padding: "10px 0px", width: "30px" }}
                         ariaLabel="Remove"
                         iconProps={{ iconName: "Delete" }}
-                        onClick={() => this.removeIgnoredStage(item)}
+                        onClick={async() => await this.removeIgnoredStage(item)}
                     />
                 </div>
             </ListItem>

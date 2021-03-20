@@ -9,7 +9,7 @@ export interface ISettingsService {
     setCurrentBranch(branch: string): Promise<void>;
 
     getIgnoredStagesForPipeline(pipelineId: number): Promise<string[]>;
-    saveIgnoredStagesForPipeline(pipelineId: number, ignoredStages: string[]):Promise<void>;
+    setIgnoredStagesForPipeline(pipelineId: number, ignoredStages: string[]):Promise<void>;
 }
 
 export class SettingsService implements ISettingsService {
@@ -92,7 +92,7 @@ export class SettingsService implements ISettingsService {
         return [];
     }
 
-    public async saveIgnoredStagesForPipeline(pipelineId: number, ignoredStages: string[]):Promise<void>{
+    public async setIgnoredStagesForPipeline(pipelineId: number, ignoredStages: string[]):Promise<void>{
         await this.dataManager?.setValue<string[]>(`${this.pipelineSettingPrefix}_${pipelineId}_IgnoredStages`, ignoredStages);
     }
 }
