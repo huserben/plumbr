@@ -2,7 +2,7 @@
     "manifestVersion": 1,
     "id": "plumbr",
     "publisher": "benjhuser",
-    "version": "0.1.122",
+    "version": "0.1.156",
     "name": "Plumbr - Your Pipeline Manager",
     "description": "Manage your Azure Pipelines with this extension",
     "public": false,
@@ -15,7 +15,8 @@
         }
     ],
     "scopes":[
-        "vso.build_execute"
+        "vso.build_execute",
+        "vso.variablegroups_write"
     ],
     "icons": {
         "default": "static/plumber.png"

@@ -12,6 +12,7 @@ export interface IOverviewTabState {
     pipelines: BuildDefinitionReference[];
     branches: string[];
     builds: Build[];
+    ignoredStages: string[],
     ready: boolean;
 }
 
@@ -33,6 +34,7 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
             pipelines: [],
             branches: [],
             builds: [],
+            ignoredStages: [],
             ready: false
         };
     }
@@ -118,13 +120,15 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
 
     private async loadBuildsForSelectedBranch() {
         var buildsForBranch: Build[] = await this.buildService?.getBuildsForPipeline(this.selectedPipeline, this.selectedBranch, 10) ?? [];
+        
+        var stagesToIgnore = await this.settingsService?.getIgnoredStagesForPipeline(this.selectedPipeline) ?? [];
 
-        this.setState({ builds: buildsForBranch })
+        this.setState({ builds: buildsForBranch, ignoredStages: stagesToIgnore })
     }
 
     public render(): JSX.Element {
 
-        const { pipelines, branches, builds, ready } = this.state;
+        const { pipelines, branches, builds, ignoredStages, ready } = this.state;
 
         if (!ready) {
             return (
@@ -170,7 +174,7 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
 
                     {builds.map((build, index) => (
                         <PipelineRun
-                            build={build} />
+                            build={build} ignoredStages={ignoredStages} />
                     ))}
                 </div>
             );

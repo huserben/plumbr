@@ -1,8 +1,10 @@
 import { CommonServiceIds, IProjectInfo, IProjectPageService, getClient, ILocationService } from "azure-devops-extension-api";
 import * as adoBuild from "azure-devops-extension-api/Build";
+import * as adoTask from "azure-devops-extension-api/TaskAgent"
 import { Build, BuildDefinitionReference, BuildQueryOrder, BuildRestClient, Timeline, TimelineRecord } from "azure-devops-extension-api/Build";
 import { CoreRestClient } from "azure-devops-extension-api/Core";
 import * as SDK from "azure-devops-extension-sdk";
+import { TaskAgentRestClient, VariableGroup } from "azure-devops-extension-api/TaskAgent";
 
 export interface IBuildService {
     getBuildDefinitions(): Promise<BuildDefinitionReference[]>;
@@ -10,6 +12,7 @@ export interface IBuildService {
     getTimelineForBuild(buildId: number): Promise<Timeline | undefined>;
     getApprovalForStage(timelineRecords: TimelineRecord[], stage: TimelineRecord): TimelineRecord | undefined;
     approveStage(stage: TimelineRecord, approvalComment: string): Promise<void>;
+    getVariableGroups(): Promise<VariableGroup[]>
 }
 
 export class BuildService implements IBuildService {
@@ -17,6 +20,7 @@ export class BuildService implements IBuildService {
 
     private project?: IProjectInfo;
     private buildService?: BuildRestClient;
+    private taskService?: TaskAgentRestClient;
 
     private constructor() {
     }
@@ -28,6 +32,8 @@ export class BuildService implements IBuildService {
         this.project = await projectService.getProject();
 
         this.buildService = await getClient(adoBuild.BuildRestClient)
+
+        this.taskService = await getClient(adoTask.TaskAgentRestClient);        
     }
 
     private getProjectName(): string {
@@ -97,5 +103,9 @@ export class BuildService implements IBuildService {
             }),
             body: JSON.stringify(body)
         })
+    }
+
+    public async getVariableGroups(): Promise<VariableGroup[]> {
+        return await this.taskService?.getVariableGroups(this.getProjectName()) ?? [];
     }
 }

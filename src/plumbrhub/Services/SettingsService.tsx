@@ -9,7 +9,10 @@ export interface ISettingsService {
     setCurrentBranch(branch: string): Promise<void>;
 
     getIgnoredStagesForPipeline(pipelineId: number): Promise<string[]>;
-    setIgnoredStagesForPipeline(pipelineId: number, ignoredStages: string[]):Promise<void>;
+    setIgnoredStagesForPipeline(pipelineId: number, ignoredStages: string[]): Promise<void>;
+
+    getVariableGroupConfig(pipelineId: number): Promise<{ [id: string]: number[] }>;
+    setVariableGroupConfig(pipelineId: number, variableGroupConfig: { [id: string]: number[] }): Promise<void>;
 }
 
 export class SettingsService implements ISettingsService {
@@ -21,7 +24,7 @@ export class SettingsService implements ISettingsService {
     private currentPipelineId: string = "";
     private currentBranchId: string = "";
 
-    private pipelineSettingPrefix : string = "";
+    private pipelineSettingPrefix: string = "";
 
     private constructor() {
 
@@ -38,9 +41,9 @@ export class SettingsService implements ISettingsService {
         var projectService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
         var project = await projectService.getProject();
 
-        this.currentPipelineId = `${project?.id}_CurrentPipeline`;
-        this.currentBranchId = `${project?.id}_CurrentBranch`;
-        this.pipelineSettingPrefix = `${project?.id}_Pipelines`
+        this.currentPipelineId = `${project?.id}CurrentPipeline`;
+        this.currentBranchId = `${project?.id}CurrentBranch`;
+        this.pipelineSettingPrefix = `${project?.id}Pipelines`
     }
 
     public static async getInstance(): Promise<ISettingsService> {
@@ -83,16 +86,70 @@ export class SettingsService implements ISettingsService {
     }
 
     public async getIgnoredStagesForPipeline(pipelineId: number): Promise<string[]> {
-        var ignoredStages = await this.dataManager?.getValue<string[]>(`${this.pipelineSettingPrefix}_${pipelineId}_IgnoredStages`);
+        var ignoredStages = await this.dataManager?.getValue<string[]>(`${this.pipelineSettingPrefix}${pipelineId}IgnoredStages`);
 
-        if (ignoredStages){
+        if (ignoredStages) {
             return ignoredStages;
         }
 
         return [];
     }
 
-    public async setIgnoredStagesForPipeline(pipelineId: number, ignoredStages: string[]):Promise<void>{
-        await this.dataManager?.setValue<string[]>(`${this.pipelineSettingPrefix}_${pipelineId}_IgnoredStages`, ignoredStages);
+    public async setIgnoredStagesForPipeline(pipelineId: number, ignoredStages: string[]): Promise<void> {
+        await this.dataManager?.setValue<string[]>(`${this.pipelineSettingPrefix}${pipelineId}IgnoredStages`, ignoredStages);
+    }
+
+    public async getVariableGroupConfig(pipelineId: number): Promise<{ [id: string]: number[] }> {
+        var variableGroupConfig = await this.dataManager?.getValue<string>(`${this.pipelineSettingPrefix}${pipelineId}StageConfigString`) ?? "";
+
+        console.log(`Read following stage config string: ${variableGroupConfig}`);
+
+        var variableConfiguration: { [id: string]: number[] } = {};
+
+        var stageConfigs = variableGroupConfig.split('/')
+        stageConfigs.forEach(stageConfig => {
+            var stageConfigSplit = stageConfig.split(':');
+            var stageName = stageConfigSplit[0];
+            variableConfiguration[stageName] = [];
+
+            stageConfigSplit[1].split(',').forEach(variableGroupId => {
+                variableConfiguration[stageName].push(Number.parseInt(variableGroupId));
+            })
+        });
+
+        console.log(`Get stage configs for Pipeline ${pipelineId}: ${JSON.stringify(variableConfiguration)}`);
+
+        return variableConfiguration;
+    }
+
+    public async setVariableGroupConfig(pipelineId: number, variableGroupConfig: { [id: string]: number[] }): Promise<void> {
+        console.log(`Set stage configs for Pipeline ${pipelineId}: ${JSON.stringify(variableGroupConfig)}`);
+
+        var variableConfigString = "";
+
+        for (const [stageId, value] of Object.entries(variableGroupConfig)) {
+            if (variableConfigString.length > 0) {
+                variableConfigString += "/"
+            }
+
+            variableConfigString += `${stageId}:`
+
+            var stageVariableConfigString = "";
+            value.forEach(variableConfigId => {
+                if (variableConfigId !== null && variableConfigId !== NaN) {
+                    if (stageVariableConfigString.length > 0) {
+                        stageVariableConfigString += ","
+                    }
+
+                    stageVariableConfigString += `${variableConfigId}`
+                }
+            })
+
+            variableConfigString += `${stageVariableConfigString}`
+        }
+
+        console.log(`Setting variable config string: ${variableConfigString}`);
+
+        await this.dataManager?.setValue<string>(`${this.pipelineSettingPrefix}${pipelineId}StageConfigString`, variableConfigString);
     }
 }
