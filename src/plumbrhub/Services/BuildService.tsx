@@ -4,7 +4,7 @@ import * as adoTask from "azure-devops-extension-api/TaskAgent"
 import { Build, BuildDefinitionReference, BuildQueryOrder, BuildRestClient, Timeline, TimelineRecord } from "azure-devops-extension-api/Build";
 import { CoreRestClient } from "azure-devops-extension-api/Core";
 import * as SDK from "azure-devops-extension-sdk";
-import { TaskAgentRestClient, VariableGroup } from "azure-devops-extension-api/TaskAgent";
+import { TaskAgentRestClient, VariableGroup, VariableGroupParameters } from "azure-devops-extension-api/TaskAgent";
 
 export interface IBuildService {
     getBuildDefinitions(): Promise<BuildDefinitionReference[]>;
@@ -12,7 +12,9 @@ export interface IBuildService {
     getTimelineForBuild(buildId: number): Promise<Timeline | undefined>;
     getApprovalForStage(timelineRecords: TimelineRecord[], stage: TimelineRecord): TimelineRecord | undefined;
     approveStage(stage: TimelineRecord, approvalComment: string): Promise<void>;
-    getVariableGroups(): Promise<VariableGroup[]>
+    getVariableGroups(): Promise<VariableGroup[]>;
+    getVariableGroupsById(variableGroupIds: number[]): Promise<VariableGroup[]>;
+    updateVariableGroup(variableGroup: VariableGroup): Promise<void>;
 }
 
 export class BuildService implements IBuildService {
@@ -33,7 +35,7 @@ export class BuildService implements IBuildService {
 
         this.buildService = await getClient(adoBuild.BuildRestClient)
 
-        this.taskService = await getClient(adoTask.TaskAgentRestClient);        
+        this.taskService = await getClient(adoTask.TaskAgentRestClient);
     }
 
     private getProjectName(): string {
@@ -93,7 +95,7 @@ export class BuildService implements IBuildService {
                 status: 4,
                 comment: approvalComment
             }
-        ]        
+        ]
 
         await fetch(url, {
             method: 'PATCH',
@@ -107,5 +109,35 @@ export class BuildService implements IBuildService {
 
     public async getVariableGroups(): Promise<VariableGroup[]> {
         return await this.taskService?.getVariableGroups(this.getProjectName()) ?? [];
+    }
+
+    public async getVariableGroupsById(variableGroupIds: number[]): Promise<VariableGroup[]> {
+        return await this.taskService?.getVariableGroupsById(this.getProjectName(), variableGroupIds) ?? [];
+    }
+
+    public async updateVariableGroup(variableGroup: VariableGroup): Promise<void> {
+        const accessToken = await SDK.getAccessToken();
+        const service: ILocationService = await SDK.getService(CommonServiceIds.LocationService);
+        const hostBaseUrl = await service.getResourceAreaLocation(CoreRestClient.RESOURCE_AREA_ID);
+        var projectId = this.project?.id ?? "";
+
+        var url = `${hostBaseUrl}${projectId}/_apis/distributedtask/variablegroups/${variableGroup.id}?api-version=5.0-preview.1`;
+
+        var body =
+        {
+            id: 2,
+            type: "Vsts",
+            name: variableGroup.name,
+            variables: variableGroup.variables
+        }
+
+        await fetch(url, {
+            method: 'PUT',
+            headers: new Headers({
+                'Authorization': `Basic ${btoa(`:${accessToken}`)}`,
+                'Content-Type': 'application/json'
+            }),
+            body: JSON.stringify(body)
+        })
     }
 }

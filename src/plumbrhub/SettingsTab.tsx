@@ -1,9 +1,7 @@
 import * as React from "react";
 
 import { BuildDefinitionReference } from "azure-devops-extension-api/Build";
-import { Card } from "azure-devops-ui/Card";
 import { BuildService, IBuildService } from "./Services/BuildService";
-import { TextField } from "azure-devops-ui/TextField";
 import { PipelineSetting } from "./Components/PipelineSetting";
 
 export interface ISettingsState {

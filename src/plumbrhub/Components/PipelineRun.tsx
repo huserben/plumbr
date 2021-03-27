@@ -129,7 +129,7 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
                 <div className="page-content page-content-top flex-row rhythm-horizontal-16">
                     {
                         stages.map((stage, index) => (
-                            <StageComponent currentStage={stage} timelineRecords={timelineRecords} />
+                            <StageComponent currentStage={stage} timelineRecords={timelineRecords} pipelineId={this.props.build.definition.id} />
                         ))
                     }
                 </div>

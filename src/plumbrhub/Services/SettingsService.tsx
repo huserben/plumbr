@@ -102,8 +102,6 @@ export class SettingsService implements ISettingsService {
     public async getVariableGroupConfig(pipelineId: number): Promise<{ [id: string]: number[] }> {
         var variableGroupConfig = await this.dataManager?.getValue<string>(`${this.pipelineSettingPrefix}${pipelineId}StageConfigString`) ?? "";
 
-        console.log(`Read following stage config string: ${variableGroupConfig}`);
-
         var variableConfiguration: { [id: string]: number[] } = {};
 
         var stageConfigs = variableGroupConfig.split('/')
@@ -117,13 +115,10 @@ export class SettingsService implements ISettingsService {
             })
         });
 
-        console.log(`Get stage configs for Pipeline ${pipelineId}: ${JSON.stringify(variableConfiguration)}`);
-
         return variableConfiguration;
     }
 
     public async setVariableGroupConfig(pipelineId: number, variableGroupConfig: { [id: string]: number[] }): Promise<void> {
-        console.log(`Set stage configs for Pipeline ${pipelineId}: ${JSON.stringify(variableGroupConfig)}`);
 
         var variableConfigString = "";
 
@@ -147,8 +142,6 @@ export class SettingsService implements ISettingsService {
 
             variableConfigString += `${stageVariableConfigString}`
         }
-
-        console.log(`Setting variable config string: ${variableConfigString}`);
 
         await this.dataManager?.setValue<string>(`${this.pipelineSettingPrefix}${pipelineId}StageConfigString`, variableConfigString);
     }

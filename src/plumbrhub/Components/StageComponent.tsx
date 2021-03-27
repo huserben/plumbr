@@ -4,12 +4,15 @@ import { Card } from "azure-devops-ui/Card";
 import { IStatusProps, Statuses, Status, StatusSize } from "azure-devops-ui/Status";
 import { IHeaderCommandBarItem } from "azure-devops-ui/HeaderCommandBar";
 import * as SDK from "azure-devops-extension-sdk";
-import { CommonServiceIds, IGlobalMessagesService, IHostPageLayoutService, ILocationService, IProjectPageService } from "azure-devops-extension-api";
+import { CommonServiceIds, IGlobalMessagesService, IHostPageLayoutService } from "azure-devops-extension-api";
 import { BuildService, IBuildService } from "../Services/BuildService";
+import { ISettingsService, SettingsService } from "../Services/SettingsService";
+import { IPanelResult } from "../../Panel/Panel";
 
 export interface IStageComponentProps {
     currentStage: TimelineRecord,
-    timelineRecords: TimelineRecord[]
+    timelineRecords: TimelineRecord[],
+    pipelineId: number
 }
 
 export interface IStageComponentState {
@@ -20,6 +23,7 @@ export interface IStageComponentState {
 
 export class StageComponent extends React.Component<IStageComponentProps, IStageComponentState> {
     private buildService?: IBuildService;
+    private settingsService?: ISettingsService;
 
     constructor(props: IStageComponentProps) {
         super(props);
@@ -36,6 +40,8 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
 
     public async initializeState(): Promise<void> {
         this.buildService = await BuildService.getInstance();
+
+        this.settingsService = await SettingsService.getInstance();
 
         var commandBarItems: IHeaderCommandBarItem[] = [];
         var approval: TimelineRecord | undefined = this.buildService.getApprovalForStage(this.props.timelineRecords, this.props.currentStage);
@@ -58,20 +64,32 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
 
     private async onPanelClick(): Promise<void> {
         const panelService = await SDK.getService<IHostPageLayoutService>(CommonServiceIds.HostPageLayoutService);
-        panelService.openPanel<boolean | undefined>(SDK.getExtensionContext().id + ".panel-content", {
-            title: "My Panel",
-            description: "Description of my panel",
+
+        var variableGroupConfiguration = await this.settingsService?.getVariableGroupConfig(this.props.pipelineId) ?? {};
+        var variableGroupIds = variableGroupConfiguration[this.props.currentStage.name] ?? [];
+
+        console.log(`Following Variable groups are defined for stage ${this.props.currentStage.name}: ${variableGroupIds}`);
+
+        var variableGroups = await this.buildService?.getVariableGroupsById(variableGroupIds);
+
+        panelService.openPanel<IPanelResult | undefined>(SDK.getExtensionContext().id + ".panel-content", {
+            title: `${this.props.currentStage.name}`,
+            description: `Approve Stage`,
             configuration: {
-                message: "Show header description?",
-                initialValue: "Some Header Description"
+                stage: this.props.currentStage,
+                variableGroups: variableGroups
             },
             onClose: async (result) => {
                 if (result !== undefined) {
-                    console.log("Result is NOT undefined");
-                    await this.onApproveStage("Whatever Comment for approval");
-                }
-                else {
-                    console.log("Result IS undefined")
+                    console.log(`Approval Comment: ${result.approvalComment}`);
+
+                    console.log(`Updating Variable Groups`);
+
+                    for (var variableGroup of result.variableGroups){
+                        await this.buildService?.updateVariableGroup(variableGroup);
+                    }
+
+                    await this.onApproveStage(result.approvalComment);
                 }
             }
         });

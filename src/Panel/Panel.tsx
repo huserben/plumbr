@@ -5,30 +5,40 @@ import * as SDK from "azure-devops-extension-sdk";
 
 import { Button } from "azure-devops-ui/Button";
 import { ButtonGroup } from "azure-devops-ui/ButtonGroup";
-import { Toggle } from "azure-devops-ui/Toggle";
 import { showRootComponent } from "../Common";
+import { VariableGroup } from "azure-devops-extension-api/TaskAgent";
+import { Card } from "azure-devops-ui/Card";
+import { FormItem } from "azure-devops-ui/FormItem";
+import { TextField } from "azure-devops-ui/TextField";
+
+
+export interface IPanelResult{
+    approvalComment: string,
+    variableGroups: VariableGroup[]
+}
 
 interface IPanelContentState {
-    message?: string;
-    toggleValue?: boolean;
-    ready?: boolean;
+    variableGroups: VariableGroup[],
+    approvalComment: string
 }
 
 class PanelContent extends React.Component<{}, IPanelContentState> {
-    
+
     constructor(props: {}) {
         super(props);
-        this.state = {};
+        this.state = {
+            variableGroups: [],
+            approvalComment: ""
+        };
     }
 
     public componentDidMount() {
         SDK.init();
-        
+
         SDK.ready().then(() => {
             const config = SDK.getConfiguration();
-            const message = config.message || "Custom dialog message";
-            const toggleValue = !!config.initialValue;
-            this.setState({ message, toggleValue, ready: true });
+            const variableGroups = config.variableGroups || [];
+            this.setState({ variableGroups });
 
             if (config.dialog) {
                 // Give the host frame the size of our dialog content so that the dialog can be sized appropriately.
@@ -46,18 +56,48 @@ class PanelContent extends React.Component<{}, IPanelContentState> {
     }
 
     public render(): JSX.Element {
-        const { message, ready, toggleValue } = this.state;
+        const { variableGroups, approvalComment } = this.state;
 
         return (
             <div className="sample-panel flex-column flex-grow">
-                <Toggle checked={toggleValue} text={message} disabled={!ready} onChange={(e, val) => this.setState({toggleValue: val})} />
-                <div className="flex-grow flex-column flex-center justify-center" style={{ border: "1px solid #eee", margin: "10px 0" }}>
-                    Additional content placeholder
+                <div className="flex-grow flex-column" style={{ border: "1px solid #eee", margin: "10px 0" }}>
+                    <FormItem
+                        label="Approval Comment">
+                        <TextField
+                            value={approvalComment}
+                            onChange={(e, newValue) => {
+                                this.setState({ approvalComment: newValue })
+                            }}
+                        />
+                    </FormItem>
+
+                    {variableGroups.map((vg, index) => (
+                        <Card
+                            titleProps={{ text: vg.name }}
+                        >
+                            <div className="page-content page-content-top flex-column rhythm-vertical-16">
+                                {Object.keys(vg.variables).map((variableKey, index) => (
+                                    <FormItem
+                                        label={variableKey}>
+                                        <TextField
+                                            value={vg.variables[variableKey].value}
+                                            inputType={vg.variables[variableKey].isSecret ? "password" : "text"}
+                                            onChange={(e, newValue) => {
+                                                (vg.variables[variableKey].value = newValue)
+                                                this.setState({ variableGroups: this.state.variableGroups })
+                                            }}
+                                        />
+                                    </FormItem>
+                                ))
+                                }
+                            </div>
+                        </Card>
+                    ))}
                 </div>
                 <ButtonGroup className="sample-panel-button-bar">
                     <Button
                         primary={true}
-                        text="OK"
+                        text="Approve"
                         onClick={() => this.dismiss(true)}
                     />
                     <Button
@@ -69,8 +109,16 @@ class PanelContent extends React.Component<{}, IPanelContentState> {
         );
     }
 
-    private dismiss(useValue: boolean) {
-        const result = useValue ? this.state.toggleValue : undefined;
+    private dismiss(isApproved: boolean) {
+        var result: IPanelResult | undefined = undefined;
+
+        if (isApproved) {
+            result = {
+                approvalComment: this.state.approvalComment,
+                variableGroups: this.state.variableGroups
+            }
+        }
+
         const config = SDK.getConfiguration();
         if (config.dialog) {
             config.dialog.close(result);
