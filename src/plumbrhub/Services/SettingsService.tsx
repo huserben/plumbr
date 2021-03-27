@@ -2,11 +2,9 @@ import { CommonServiceIds, IExtensionDataManager, IExtensionDataService, IProjec
 import * as SDK from "azure-devops-extension-sdk";
 
 export interface ISettingsService {
-    getCurrentPipeline(): Promise<number>;
-    setCurrentPipeline(pipelineId: number): Promise<void>;
-
-    getCurrentBranch(): Promise<string>;
-    setCurrentBranch(branch: string): Promise<void>;
+    getIncludedPipelines(): Promise<number[]>;
+    addIncludedPipeline(pipelineId: number): Promise<void>;
+    removeIncludedPipeline(pipelineId: number): Promise<void>
 
     getIgnoredStagesForPipeline(pipelineId: number): Promise<string[]>;
     setIgnoredStagesForPipeline(pipelineId: number, ignoredStages: string[]): Promise<void>;
@@ -21,8 +19,7 @@ export class SettingsService implements ISettingsService {
 
     private dataManager?: IExtensionDataManager;
 
-    private currentPipelineId: string = "";
-    private currentBranchId: string = "";
+    private includedPipelinesId: string = "";
 
     private pipelineSettingPrefix: string = "";
 
@@ -41,8 +38,7 @@ export class SettingsService implements ISettingsService {
         var projectService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
         var project = await projectService.getProject();
 
-        this.currentPipelineId = `${project?.id}CurrentPipeline`;
-        this.currentBranchId = `${project?.id}CurrentBranch`;
+        this.includedPipelinesId = `${project?.id}IncludedPipelilnes`;
         this.pipelineSettingPrefix = `${project?.id}Pipelines`
     }
 
@@ -56,33 +52,35 @@ export class SettingsService implements ISettingsService {
         return SettingsService.instance;
     }
 
-    public async getCurrentPipeline(): Promise<number> {
-        var currentPipeline = await this.dataManager?.getValue<number>(this.currentPipelineId);
+    public async getIncludedPipelines(): Promise<number[]> {
+        var includedPipelines = await this.dataManager?.getValue<number[]>(this.includedPipelinesId);
 
-        if (currentPipeline) {
-            return currentPipeline;
+        if (includedPipelines) {
+            return includedPipelines;
         }
 
-        return -1;
+        return [];
     }
 
-    public async setCurrentPipeline(pipelineId: number): Promise<void> {
-        await this.dataManager?.setValue<number>(this.currentPipelineId, pipelineId);
+    public async setIncludedPipelines(includedPipelines: number[]): Promise<void> {
+        await this.dataManager?.setValue<number[]>(this.includedPipelinesId, includedPipelines);
     }
 
-    public async getCurrentBranch(): Promise<string> {
-        var currentBranch = await this.dataManager?.getValue<string>(this.currentBranchId);
+    public async addIncludedPipeline(pipelineId: number): Promise<void> {
+        var includedPipelines = await this.getIncludedPipelines();
+        includedPipelines.push(pipelineId);
 
-        if (currentBranch) {
-            return currentBranch;
+        await this.setIncludedPipelines(includedPipelines);
+    }
+
+    public async removeIncludedPipeline(pipelineId: number): Promise<void> {
+        var includedPipelines = await this.getIncludedPipelines();
+        const index = includedPipelines.indexOf(pipelineId, 0);
+        if (index > -1) {
+            includedPipelines.splice(index, 1);
         }
 
-        return "";
-    }
-
-
-    public async setCurrentBranch(branch: string): Promise<void> {
-        await this.dataManager?.setValue<string>(this.currentBranchId, branch);
+        await this.setIncludedPipelines(includedPipelines);
     }
 
     public async getIgnoredStagesForPipeline(pipelineId: number): Promise<string[]> {

@@ -50,14 +50,19 @@ module.exports = {
             {
                 test: /\.html$/,
                 loader: "file-loader"
+            },
+            {
+                test: /\.(png|jpe?g|gif)$/i,
+                loader: 'file-loader'
             }
         ]
     },
     plugins: [
         new CopyWebpackPlugin({
-           patterns: [ 
-               { from: "**/*.html", context: "src" }
-           ]
+            patterns: [
+                { from: "**/*.html", context: "src" },
+                { from: "**/*.png", context: "src" },
+            ]
         })
     ]
 };

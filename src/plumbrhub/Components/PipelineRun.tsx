@@ -116,7 +116,7 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
                     <HeaderTitleArea>
                         <HeaderTitleRow>
                             <HeaderTitle className="text-ellipsis" titleSize={TitleSize.Large}>
-                                {this.props.build.buildNumber}
+                                {this.props.build.definition.name} - {this.props.build.buildNumber}
                             </HeaderTitle>
                         </HeaderTitleRow>
                         <HeaderDescription>
