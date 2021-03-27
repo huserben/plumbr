@@ -6,7 +6,7 @@ import { PipelineRun } from "./Components/PipelineRun";
 import { Spinner, SpinnerSize } from "azure-devops-ui/Spinner";
 import { ISettingsService, SettingsService } from "./Services/SettingsService";
 import { BuildService, IBuildService } from "./Services/BuildService";
-import { Build, BuildDefinitionReference } from "azure-devops-extension-api/Build";
+import { Build, BuildDefinitionReference, BuildStatus } from "azure-devops-extension-api/Build";
 
 export interface IOverviewTabState {
     pipelines: BuildDefinitionReference[];
@@ -97,7 +97,7 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
     }
 
     private async loadBranchesForSelectedPipeline(): Promise<string[]> {
-        var buildsForDefinition: Build[] = await this.buildService?.getBuildsForPipeline(this.selectedPipeline) ?? [];
+        var buildsForDefinition: Build[] = await this.buildService?.getBuildsForPipeline(this.selectedPipeline, BuildStatus.InProgress) ?? [];
 
         var branches: string[] = buildsForDefinition.map((build, index) => (build.sourceBranch));
         var distinctBranches = branches.filter((branch, index) => branches.indexOf(branch) === index);
@@ -119,7 +119,7 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
     }
 
     private async loadBuildsForSelectedBranch() {
-        var buildsForBranch: Build[] = await this.buildService?.getBuildsForPipeline(this.selectedPipeline, this.selectedBranch, 10) ?? [];
+        var buildsForBranch: Build[] = await this.buildService?.getBuildsForPipeline(this.selectedPipeline, BuildStatus.InProgress, this.selectedBranch, 10) ?? [];
         
         var stagesToIgnore = await this.settingsService?.getIgnoredStagesForPipeline(this.selectedPipeline) ?? [];
 

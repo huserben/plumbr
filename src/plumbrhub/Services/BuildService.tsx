@@ -1,14 +1,14 @@
 import { CommonServiceIds, IProjectInfo, IProjectPageService, getClient, ILocationService } from "azure-devops-extension-api";
 import * as adoBuild from "azure-devops-extension-api/Build";
 import * as adoTask from "azure-devops-extension-api/TaskAgent"
-import { Build, BuildDefinitionReference, BuildQueryOrder, BuildRestClient, Timeline, TimelineRecord } from "azure-devops-extension-api/Build";
+import { Build, BuildDefinitionReference, BuildQueryOrder, BuildRestClient, BuildStatus, Timeline, TimelineRecord } from "azure-devops-extension-api/Build";
 import { CoreRestClient } from "azure-devops-extension-api/Core";
 import * as SDK from "azure-devops-extension-sdk";
-import { TaskAgentRestClient, VariableGroup, VariableGroupParameters } from "azure-devops-extension-api/TaskAgent";
+import { TaskAgentRestClient, VariableGroup } from "azure-devops-extension-api/TaskAgent";
 
 export interface IBuildService {
     getBuildDefinitions(): Promise<BuildDefinitionReference[]>;
-    getBuildsForPipeline(pipelineId: number, branch?: string | undefined, top?: number | undefined): Promise<Build[]>;
+    getBuildsForPipeline(pipelineId: number, status?: BuildStatus | undefined, branch?: string | undefined, top?: number | undefined): Promise<Build[]>;
     getTimelineForBuild(buildId: number): Promise<Timeline | undefined>;
     getApprovalForStage(timelineRecords: TimelineRecord[], stage: TimelineRecord): TimelineRecord | undefined;
     approveStage(stage: TimelineRecord, approvalComment: string): Promise<void>;
@@ -56,9 +56,9 @@ export class BuildService implements IBuildService {
         return await this.buildService?.getDefinitions(this.getProjectName()) ?? [];
     }
 
-    public async getBuildsForPipeline(pipelineId: number, branch: string | undefined = undefined, top: number | undefined = undefined): Promise<Build[]> {
+    public async getBuildsForPipeline(pipelineId: number, status: BuildStatus | undefined, branch: string | undefined = undefined, top: number | undefined = undefined): Promise<Build[]> {
         return await this.buildService?.getBuilds(
-            this.getProjectName(), [pipelineId], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, top, undefined, undefined, undefined, BuildQueryOrder.StartTimeDescending, branch) ?? [];
+            this.getProjectName(), [pipelineId], undefined, undefined, undefined, undefined, undefined, undefined, status, undefined, undefined, undefined, top, undefined, undefined, undefined, BuildQueryOrder.StartTimeDescending, branch) ?? [];
     }
 
     public async getTimelineForBuild(buildId: number): Promise<Timeline | undefined> {
