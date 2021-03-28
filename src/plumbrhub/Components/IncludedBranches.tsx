@@ -85,7 +85,7 @@ export const IncludedBranches: React.FunctionComponent<IIncludedBranchesProps> =
                 <TagPicker
                     areTagsEqual={areTagsEqual}
                     convertItemToPill={convertItemToPill}
-                    noResultsFoundText={"No Stages found"}
+                    noResultsFoundText={"No Branches found"}
                     onSearchChanged={onSearchChanged}
                     onTagAdded={onTagAdded}
                     onTagRemoved={onTagRemoved}

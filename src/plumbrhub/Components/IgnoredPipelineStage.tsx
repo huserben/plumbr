@@ -1,15 +1,14 @@
-import { Build, BuildDefinitionReference } from "azure-devops-extension-api/Build/Build";
+import { BuildDefinitionReference, TimelineRecord } from "azure-devops-extension-api/Build/Build";
 import { useObservableArray } from "azure-devops-ui/Core/Observable";
 import { FormItem } from "azure-devops-ui/FormItem";
 import { ISuggestionItemProps } from "azure-devops-ui/SuggestionsList";
 import { TagPicker } from "azure-devops-ui/TagPicker";
 import React, { useEffect } from "react";
-import { BuildService } from "../Services/BuildService";
 import { ISettingsService, SettingsService } from "../Services/SettingsService";
 
 export interface IIgnoredPipelineStageProps {
     buildDefinition: BuildDefinitionReference,
-    builds: Build[]
+    allStages: TimelineRecord[]
 }
 
 export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageProps> = (props) => {
@@ -17,7 +16,6 @@ export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageP
     const [suggestions, setSuggestions] = useObservableArray<string>([]);
 
     let isLoading : boolean = false;
-    let availableStages: string[] = []
 
     let settingsService: ISettingsService | undefined = undefined;
 
@@ -33,25 +31,6 @@ export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageP
 
         var ignoredStages = await settingsService.getIgnoredStagesForPipeline(props.buildDefinition.id);
         setIgnoredStages(ignoredStages);
-
-        var buildService = await BuildService.getInstance();
-
-        var allStages: string[] = []
-
-        for (var build of props.builds) {
-            var buildTimeline = await buildService.getTimelineForBuild(build.id);
-            var stages = buildTimeline?.records.filter((record, index) => record.type === "Stage") ?? [];
-
-            stages.forEach(stage => {
-                allStages.push(stage.name);
-            });
-        }
-
-        var distinctStages = allStages.filter((stage, index) => allStages.indexOf(stage) === index);
-
-        distinctStages.forEach(stage => {
-            availableStages.push(stage);
-        });
     }
 
     const renderSuggestionItem = (tag: ISuggestionItemProps<string>) => {
@@ -70,18 +49,18 @@ export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageP
     };
 
     const onSearchChanged = (searchValue: string) => {
-        var filteredItems =availableStages
+        var filteredItems = props.allStages
         .filter(
             testItem =>
                 ignoredStages.value.findIndex(
-                    testSuggestion => testSuggestion == testItem
+                    testSuggestion => testSuggestion == testItem.name
                 ) === -1
         )
         .filter(
-            testItem => testItem.toLowerCase().indexOf(searchValue.toLowerCase()) > -1
+            testItem => testItem.name.toLowerCase().indexOf(searchValue.toLowerCase()) > -1
         );
 
-        setSuggestions(filteredItems);
+        setSuggestions(filteredItems.map(i => i.name));
     };
 
     const convertItemToPill = (tag: string) => {

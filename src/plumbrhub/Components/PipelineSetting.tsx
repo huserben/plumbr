@@ -1,4 +1,4 @@
-import { Build, BuildDefinitionReference } from "azure-devops-extension-api/Build";
+import { Build, BuildDefinitionReference, TimelineRecord } from "azure-devops-extension-api/Build";
 import { Card } from "azure-devops-ui/Card";
 import { Toggle } from "azure-devops-ui/Toggle";
 import React from "react";
@@ -14,7 +14,8 @@ export interface IPipelineSettingProps {
 
 interface IPipelineSettingsState {
     includePipeline: boolean,
-    pipelineBuilds: Build[]
+    pipelineBuilds: Build[],
+    stages: TimelineRecord[]
 }
 
 export class PipelineSetting extends React.Component<IPipelineSettingProps, IPipelineSettingsState> {
@@ -26,7 +27,8 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
 
         this.state = {
             includePipeline: false,
-            pipelineBuilds: []
+            pipelineBuilds: [],
+            stages: []
         }
     }
 
@@ -41,12 +43,11 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
         var includedPipelines: number[] = await this.settingsService.getIncludedPipelines();
         var isIncluded = includedPipelines.includes(this.props.buildDefinition.id);
 
-        var builds: Build[] = [];
-        if (isIncluded) {
-            builds = await this.buildService.getBuildsForPipeline(this.props.buildDefinition.id);
-        }
+        this.setState({ includePipeline: isIncluded });
 
-        this.setState({ includePipeline: isIncluded, pipelineBuilds: builds });
+        if (isIncluded) {
+            await this.loadPipelineDetails();
+        }
     }
 
     private async setIncludedPipelineState(isIncluded: boolean) {
@@ -56,18 +57,37 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
             await this.settingsService?.addIncludedPipeline(this.props.buildDefinition.id);
 
             if (builds.length < 1) {
-                builds = await this.buildService?.getBuildsForPipeline(this.props.buildDefinition.id) ?? [];
+                await this.loadPipelineDetails();
             }
         }
         else {
             await this.settingsService?.removeIncludedPipeline(this.props.buildDefinition.id);
         }
 
-        this.setState({ includePipeline: isIncluded, pipelineBuilds: builds });
+        this.setState({ includePipeline: isIncluded });
+    }
+
+    private async loadPipelineDetails(): Promise<void> {
+        var builds = await this.buildService?.getBuildsForPipeline(this.props.buildDefinition.id) ?? [];
+        this.setState({ pipelineBuilds: builds });
+
+        var allStages: TimelineRecord[] = []
+
+        for (var build of builds) {
+            var buildTimeline = await this.buildService?.getTimelineForBuild(build.id);
+            var stages = buildTimeline?.records.filter((record, index) => record.type === "Stage") ?? [];
+
+            stages.forEach(stage => {
+                allStages.push(stage);
+            });
+        }
+
+        var distinctStages = allStages.filter((stage, index, arr) => arr.findIndex(t => t.name === stage.name) === index);
+        this.setState({ stages: distinctStages })
     }
 
     public render(): JSX.Element {
-        const { includePipeline, pipelineBuilds } = this.state;
+        const { includePipeline, pipelineBuilds, stages } = this.state;
 
         return (
             <Card
@@ -84,11 +104,11 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
 
                     {includePipeline === true &&
                         <div className="flex-row" style={{ margin: "8px", alignItems: "top" }}>
-                            <div className="flex-column rhythm-vertical-16" style={{ display: "flex-column", width: "50%" }}>
+                            <div className="flex-column rhythm-vertical-16" style={{ display: "flex-column", width: "50%", margin: "4px" }}>
                                 <IncludedBranches buildDefinition={this.props.buildDefinition} builds={pipelineBuilds} />
-                                <IgnoredPiplineStage buildDefinition={this.props.buildDefinition} builds={pipelineBuilds} />
+                                <IgnoredPiplineStage buildDefinition={this.props.buildDefinition} allStages={stages} />
                             </div>
-                            <div style={{ display: "flex-column", width: "50%" }}>
+                            <div style={{ display: "flex-column", width: "50%", margin: "4px" }}>
                                 <PipelineStagesConfiguration buildDefinition={this.props.buildDefinition} />
                             </div>
                         </div>
