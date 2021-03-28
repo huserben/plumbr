@@ -74,7 +74,7 @@ export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageP
     };
 
     return (
-        <div>
+        <div style={{ display: "flex-column", width: "50%", margin: "4px" }}>
             <FormItem label="Stage to Ignore:">
                 <TagPicker
                     areTagsEqual={areTagsEqual}

@@ -68,9 +68,10 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
         var variableGroupConfiguration = await this.settingsService?.getVariableGroupConfig(this.props.pipelineId) ?? {};
         var variableGroupIds = variableGroupConfiguration[this.props.currentStage.name] ?? [];
 
-        console.log(`Following Variable groups are defined for stage ${this.props.currentStage.name}: ${variableGroupIds}`);
-
-        var variableGroups = await this.buildService?.getVariableGroupsById(variableGroupIds);
+        // Cleanup NaNs just in case
+        var cleanedIds = variableGroupIds.filter((id, index) => !Number.isNaN(id));
+        console.log(`Following Variable groups are defined for stage ${this.props.currentStage.name}: ${cleanedIds}`);
+        var variableGroups = await this.buildService?.getVariableGroupsById(cleanedIds);
 
         panelService.openPanel<IPanelResult | undefined>(SDK.getExtensionContext().id + ".panel-content", {
             title: `${this.props.currentStage.name}`,

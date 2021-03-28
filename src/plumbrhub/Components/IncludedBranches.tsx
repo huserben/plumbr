@@ -80,7 +80,7 @@ export const IncludedBranches: React.FunctionComponent<IIncludedBranchesProps> =
     };
 
     return (
-        <div>
+        <div style={{ display: "flex-column", width: "50%", margin: "4px" }}>
             <FormItem label="Branches to include:">
                 <TagPicker
                     areTagsEqual={areTagsEqual}

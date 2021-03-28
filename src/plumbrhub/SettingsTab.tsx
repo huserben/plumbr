@@ -1,21 +1,22 @@
 import * as React from "react";
 
 import { BuildDefinitionReference } from "azure-devops-extension-api/Build";
-import { BuildService, IBuildService } from "./Services/BuildService";
+import { BuildService } from "./Services/BuildService";
 import { PipelineSetting } from "./Components/PipelineSetting";
+import { VariableGroup } from "azure-devops-extension-api/TaskAgent";
 
 export interface ISettingsState {
-    buildPipelines: BuildDefinitionReference[]
+    buildPipelines: BuildDefinitionReference[],
+    variableGroups: VariableGroup[]
 }
 
 export class SettingsTab extends React.Component<{}, ISettingsState> {
-    private buildService?: IBuildService;
-
     constructor(props: {}) {
         super(props);
 
         this.state = {
-            buildPipelines: []
+            buildPipelines: [],
+            variableGroups: []
         };
     }
 
@@ -24,24 +25,22 @@ export class SettingsTab extends React.Component<{}, ISettingsState> {
     }
 
     private async initializeState(): Promise<void> {
-        this.buildService = await BuildService.getInstance();
+        var buildService = await BuildService.getInstance();
 
-        await this.setPipelineSettingState();
-    }
-
-    private async setPipelineSettingState(): Promise<void> {
-        const buildDefinitions = await this.buildService?.getBuildDefinitions() ?? [];
-
+        const buildDefinitions = await buildService.getBuildDefinitions();
         this.setState({ buildPipelines: buildDefinitions });
+
+        var variableGroups = await buildService.getVariableGroups();
+        this.setState({ variableGroups: variableGroups });
     }
 
     public render(): JSX.Element {
-        const { buildPipelines } = this.state;
+        const { buildPipelines, variableGroups } = this.state;
 
         return (
             <div className="page-content page-content-top flex-column rhythm-vertical-16">
                 { buildPipelines.map((pipeline, index) => (
-                    <PipelineSetting buildDefinition={pipeline} />
+                    <PipelineSetting buildDefinition={pipeline} variableGroups={variableGroups} />
                 ))}
             </div>
         );

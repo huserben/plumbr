@@ -1,38 +1,32 @@
-import { BuildDefinitionReference } from "azure-devops-extension-api/Build/Build";
+import { BuildDefinitionReference, TimelineRecord } from "azure-devops-extension-api/Build/Build";
 import { VariableGroup } from "azure-devops-extension-api/TaskAgent";
-import { Button } from "azure-devops-ui/Button";
-import { ObservableValue } from "azure-devops-ui/Core/Observable";
-import { Dropdown } from "azure-devops-ui/Dropdown";
+import { Card } from "azure-devops-ui/Card";
 import { Checkbox } from "azure-devops-ui/Checkbox";
 import { FormItem } from "azure-devops-ui/FormItem";
-import { IListItemDetails, ListItem, ScrollableList } from "azure-devops-ui/List";
-import { TextField, TextFieldWidth } from "azure-devops-ui/TextField";
-import { ArrayItemProvider } from "azure-devops-ui/Utilities/Provider";
+import { Spinner, SpinnerSize } from "azure-devops-ui/Spinner";
 import React from "react";
-import { BuildService } from "../Services/BuildService";
 import { ISettingsService, SettingsService } from "../Services/SettingsService";
-import { IListBoxItem } from "azure-devops-ui/ListBox";
 
 export interface IPipelineStagesConfigurationProps {
     buildDefinition: BuildDefinitionReference,
+    variableGroups: VariableGroup[],
+    stages: TimelineRecord[]
 }
 
 export interface IPipelineStagesConfigurationState {
-    variableGroups: VariableGroup[],
-    stageConfigurations: { [id: string]: number[] }
+    stageConfigurations: { [id: string]: number[] },
+    ignoredStages: string[]
 }
 
 export class PipelineStagesConfiguration extends React.Component<IPipelineStagesConfigurationProps, IPipelineStagesConfigurationState> {
     private settingsService?: ISettingsService;
 
-    private stageWithCustomConfig = new ObservableValue<string>("");
-
     constructor(props: IPipelineStagesConfigurationProps) {
         super(props);
 
         this.state = {
-            variableGroups: [],
-            stageConfigurations: {}
+            stageConfigurations: {},
+            ignoredStages: []
         }
     }
 
@@ -43,131 +37,60 @@ export class PipelineStagesConfiguration extends React.Component<IPipelineStages
     private async initializeState(): Promise<void> {
         this.settingsService = await SettingsService.getInstance();
 
-        var buildService = await BuildService.getInstance();
-        var variableGroups = await buildService.getVariableGroups();
-
         var stagesWithCustomConfig = await this.settingsService.getVariableGroupConfig(this.props.buildDefinition.id);
 
-        this.setState({ variableGroups: variableGroups, stageConfigurations: stagesWithCustomConfig });
+        var ignoredStages = await this.settingsService.getIgnoredStagesForPipeline(this.props.buildDefinition.id);
+
+        this.setState({ stageConfigurations: stagesWithCustomConfig, ignoredStages: ignoredStages });
     }
 
     public render(): JSX.Element {
 
-        const { stageConfigurations } = this.state;
+        const { stageConfigurations, ignoredStages } = this.state;
 
         return (
-            <div>
-                <div style={{ display: "flex-row" }}>
-                    <FormItem label="Stage with Custom Config:">
-                        <TextField
-                            value={this.stageWithCustomConfig}
-                            width={TextFieldWidth.standard}
-                            onChange={(e, newValue) => (this.stageWithCustomConfig.value = newValue)}
-                        />
-                    </FormItem>
-                    <Button
-                        ariaLabel="Add"
-                        iconProps={{ iconName: "Add" }}
-                        onClick={async () => await this.addCustomConfigStage()}
-                    />
-                </div>
-
-                <div style={{ display: "flex", height: "300px" }}>
-                    <ScrollableList
-                        itemProvider={new ArrayItemProvider<string>(Object.keys(stageConfigurations))}
-                        width="100%"
-                        renderRow={this.renderRow}
-                    />
-                </div>
+            <div className="page-content page-content-top flex-row rhythm-horizontal-16">
+                {
+                    this.props.stages.length < 1 ?
+                        <Spinner label="Loading Stage Configuration" size={SpinnerSize.large} />
+                        :
+                        this.props.stages.filter((stage, index) => !ignoredStages.includes(stage.name)).map((stage, index) => (
+                            <Card
+                                titleProps={{ text: `${stage.name} Variable Group Configuration` }}>
+                                <div className="rhythm-vertical-8 flex-column">
+                                    {this.props.variableGroups.map((vg, index) => (
+                                        <Checkbox
+                                            label={vg.name}
+                                            checked={stageConfigurations[stage.name]?.includes(vg.id) ?? false}
+                                            onChange={(event, checked) => this.onVariableGroupConfigChanged(checked, stage.name, vg.id)}
+                                        />
+                                    ))}
+                                </div>
+                            </Card>
+                        ))}
             </div>
         );
     }
 
-    private async addCustomConfigStage(): Promise<void> {
+    private async onVariableGroupConfigChanged(isSelected: boolean, stageName: string, variableGroupId: number) {
         var stagesWithConfig = this.state.stageConfigurations;
 
-        stagesWithConfig[this.stageWithCustomConfig.value] = [];
-
-        console.log(`Add Custom config for Stage ${this.stageWithCustomConfig.value}`);
-
-        this.setState({ stageConfigurations: stagesWithConfig })
-        this.stageWithCustomConfig.value = "";
-
-        await this.settingsService?.setVariableGroupConfig(this.props.buildDefinition.id, stagesWithConfig);
-    }
-
-    private async removeCustomConfigStage(stageConfigToRemove: string): Promise<void> {
-        var stagesWithConfig = this.state.stageConfigurations;
-        console.log(`Removing Custom config for Stage ${stageConfigToRemove}`);
-
-        delete stagesWithConfig[stageConfigToRemove]
-        this.setState({ stageConfigurations: stagesWithConfig })
-        await this.settingsService?.setVariableGroupConfig(this.props.buildDefinition.id, stagesWithConfig);
-    }
-
-    private async onSelect(stageId: string, variableGroupId: number, isSelected: boolean): Promise<void> {
-        var currentlySelectedVariableGroups = this.state.stageConfigurations[stageId];
+        if (!(stageName in stagesWithConfig)) {
+            stagesWithConfig[stageName] = []
+        }
 
         if (isSelected) {
-            currentlySelectedVariableGroups.push(variableGroupId);
+            stagesWithConfig[stageName].push(variableGroupId);
         }
         else {
-            const index = currentlySelectedVariableGroups.indexOf(variableGroupId, 0);
+            const index = stagesWithConfig[stageName].indexOf(variableGroupId, 0);
             if (index > -1) {
-                currentlySelectedVariableGroups.splice(index, 1);
+                stagesWithConfig[stageName].splice(index, 1);
             }
         }
 
-        var newStageConfiguration = this.state.stageConfigurations;
-        newStageConfiguration[stageId] = currentlySelectedVariableGroups;
-        this.setState({ stageConfigurations: newStageConfiguration })
+        this.setState({stageConfigurations: stagesWithConfig})
 
-        await this.settingsService?.setVariableGroupConfig(this.props.buildDefinition.id, newStageConfiguration)
+        await this.settingsService?.setVariableGroupConfig(this.props.buildDefinition.id, stagesWithConfig);
     }
-
-    private renderRow = (
-        index: number,
-        item: string,
-        details: IListItemDetails<string>,
-        key?: string
-    ): JSX.Element => {
-        return (
-            <ListItem key={key || "list-item" + index} index={index} details={details}>
-                <div className="list-example-row flex-row h-scroll-hidden">
-                    <div
-                        style={{ marginLeft: "10px", padding: "10px 0px" }}
-                        className="flex-column h-scroll-hidden" >
-                        <span className="text-ellipsis">{item}</span>
-                    </div>
-
-                    <div className="rhythm-vertical-8 flex-column">
-                        {this.state.variableGroups.map((varGroup, index) => (
-                            <Checkbox
-                                label={varGroup.name}
-                                checked={this.state.stageConfigurations[item].includes(varGroup.id)}
-                                onChange={(evt, isChecked) => this.onSelect(item, varGroup.id, isChecked)}
-                            />
-                        ))}
-
-
-                        {/*<Dropdown
-                            ariaLabel="Multiselect"
-                            items={
-                                this.state.variableGroups.map((vg, index) => (
-                                    { id: `${vg.id}`, text: vg.name }
-                                ))}
-                            onSelect={(evt, item) => this.onSelect(item)}
-                                showFilterBox={true} /> */}
-                    </div>
-
-                    <Button
-                        style={{ marginLeft: "50px", padding: "10px 0px", width: "30px" }}
-                        ariaLabel="Remove"
-                        iconProps={{ iconName: "Delete" }}
-                        onClick={async () => await this.removeCustomConfigStage(item)}
-                    />
-                </div>
-            </ListItem>
-        );
-    };
 }

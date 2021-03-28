@@ -1,5 +1,7 @@
-import { Build, BuildDefinitionReference, TimelineRecord } from "azure-devops-extension-api/Build";
-import { Card } from "azure-devops-ui/Card";
+import { Build, BuildDefinitionReference, BuildStatus, TimelineRecord } from "azure-devops-extension-api/Build";
+import { VariableGroup } from "azure-devops-extension-api/TaskAgent";
+import { CustomHeader, HeaderTitleArea, HeaderTitleRow, HeaderTitle, TitleSize, HeaderDescription } from "azure-devops-ui/Header";
+import { Page } from "azure-devops-ui/Page";
 import { Toggle } from "azure-devops-ui/Toggle";
 import React from "react";
 import { BuildService, IBuildService } from "../Services/BuildService";
@@ -10,6 +12,7 @@ import { PipelineStagesConfiguration } from "./PipelineStagesConfiguration";
 
 export interface IPipelineSettingProps {
     buildDefinition: BuildDefinitionReference,
+    variableGroups: VariableGroup[]
 }
 
 interface IPipelineSettingsState {
@@ -68,7 +71,7 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
     }
 
     private async loadPipelineDetails(): Promise<void> {
-        var builds = await this.buildService?.getBuildsForPipeline(this.props.buildDefinition.id) ?? [];
+        var builds = await this.buildService?.getBuildsForPipeline(this.props.buildDefinition.id, BuildStatus.Completed, undefined, 10) ?? [];
         this.setState({ pipelineBuilds: builds });
 
         var allStages: TimelineRecord[] = []
@@ -90,31 +93,40 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
         const { includePipeline, pipelineBuilds, stages } = this.state;
 
         return (
-            <Card
-                titleProps={{ text: this.props.buildDefinition.name }}>
-                <div className="flex-column rhythm-vertical-16">
-                    <div className="flex-row" style={{ margin: "8px", alignItems: "center" }}>
-                        <Toggle
-                            offText="Pipeline not Included"
-                            onText="Pipeline Included"
-                            onChange={async (event, checked) => await this.setIncludedPipelineState(checked)}
-                            checked={includePipeline}
-                        />
-                    </div>
+            <Page>
+                <CustomHeader className="bolt-header-with-commandbar">
+                    <HeaderTitleArea>
+                        <HeaderTitleRow>
+                            <HeaderTitle className="text-ellipsis" titleSize={TitleSize.Large}>
+                                {this.props.buildDefinition.name}
+                            </HeaderTitle>
+                        </HeaderTitleRow>
+                        <HeaderDescription>
+                            <Toggle
+                                offText="Pipeline not Included"
+                                onText="Pipeline Included"
+                                onChange={async (event, checked) => await this.setIncludedPipelineState(checked)}
+                                checked={includePipeline}
+                            />
+                        </HeaderDescription>
+                    </HeaderTitleArea>
+                </CustomHeader>
 
+                <div className="flex-column rhythm-vertical-16">
                     {includePipeline === true &&
-                        <div className="flex-row" style={{ margin: "8px", alignItems: "top" }}>
-                            <div className="flex-column rhythm-vertical-16" style={{ display: "flex-column", width: "50%", margin: "4px" }}>
+                        <div>
+                            <div className="page-content page-content-top flex-row rhythm-horizontal-16">
                                 <IncludedBranches buildDefinition={this.props.buildDefinition} builds={pipelineBuilds} />
                                 <IgnoredPiplineStage buildDefinition={this.props.buildDefinition} allStages={stages} />
                             </div>
-                            <div style={{ display: "flex-column", width: "50%", margin: "4px" }}>
-                                <PipelineStagesConfiguration buildDefinition={this.props.buildDefinition} />
+                            <div className="page-content page-content-top flex-row rhythm-horizontal-16">
+                                <PipelineStagesConfiguration buildDefinition={this.props.buildDefinition} variableGroups={this.props.variableGroups} stages={stages} />
                             </div>
                         </div>
                     }
                 </div>
-            </Card>
+
+            </Page>
         );
     }
 }
