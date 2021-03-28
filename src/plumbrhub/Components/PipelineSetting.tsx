@@ -4,7 +4,7 @@ import { Checkbox } from "azure-devops-ui/Checkbox";
 import { Dropdown } from "azure-devops-ui/Dropdown";
 import { FormItem } from "azure-devops-ui/FormItem";
 import React from "react";
-import { BuildService, IBuildService } from "../Services/BuildService";
+import { BuildService } from "../Services/BuildService";
 import { ISettingsService, SettingsService } from "../Services/SettingsService";
 import { IgnoredPiplineStage } from "./IgnoredPipelineStage";
 import { PipelineStagesConfiguration } from "./PipelineStagesConfiguration";
@@ -83,7 +83,7 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
                     </div>
 
                     {includePipeline === true &&
-                        <div className="flex-row" style={{ margin: "8px", alignItems: "center" }}>
+                        <div className="flex-row" style={{ margin: "8px", alignItems: "top" }}>
                             <PipelineStagesConfiguration buildDefinition={this.props.buildDefinition} />
                             <IgnoredPiplineStage buildDefinition={this.props.buildDefinition} />
                         </div>

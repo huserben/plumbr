@@ -1,120 +1,114 @@
-import { BuildDefinitionReference } from "azure-devops-extension-api/Build/Build";
-import { Button } from "azure-devops-ui/Button";
-import { ObservableValue } from "azure-devops-ui/Core/Observable";
+import { BuildDefinitionReference, TimelineRecord } from "azure-devops-extension-api/Build/Build";
+import { ObservableArray, useObservableArray } from "azure-devops-ui/Core/Observable";
 import { FormItem } from "azure-devops-ui/FormItem";
-import { IListItemDetails, ListItem, ScrollableList } from "azure-devops-ui/List";
-import { TextField, TextFieldWidth } from "azure-devops-ui/TextField";
-import { ArrayItemProvider } from "azure-devops-ui/Utilities/Provider";
-import React from "react";
+import { ISuggestionItemProps } from "azure-devops-ui/SuggestionsList";
+import { TagPicker } from "azure-devops-ui/TagPicker";
+import React, { useEffect } from "react";
+import { BuildService } from "../Services/BuildService";
 import { ISettingsService, SettingsService } from "../Services/SettingsService";
 
 export interface IIgnoredPipelineStageProps {
     buildDefinition: BuildDefinitionReference,
 }
 
-export interface IIgnoredPiplineStageState {
-    ignoredStages: ArrayItemProvider<string>
-}
+export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageProps> = (props) => {
+    const [ignoredStages, setIgnoredStages] = useObservableArray<string>([]);
+    const [suggestions, setSuggestions] = useObservableArray<string>([]);
 
-export class IgnoredPiplineStage extends React.Component<IIgnoredPipelineStageProps, IIgnoredPiplineStageState> {
-    private settingsService?: ISettingsService;
+    let availableStages: string[] = []
 
-    private stageToIgnore = new ObservableValue<string>("");
+    let settingsService: ISettingsService | undefined = undefined;
 
-    constructor(props: IIgnoredPipelineStageProps) {
-        super(props);
-
-        this.state = {
-            ignoredStages: new ArrayItemProvider([])
+    useEffect(() => {
+        if (availableStages.length < 1) {
+            loadState();
         }
-    }
+    })
 
-    public componentDidMount() {
-        this.initializeState();
-    }
+    const loadState = async () => {
+        settingsService = await SettingsService.getInstance();
 
-    private async initializeState(): Promise<void> {
-        this.settingsService = await SettingsService.getInstance();
+        var ignoredStages = await settingsService.getIgnoredStagesForPipeline(props.buildDefinition.id);
 
-        var ignoredStages = await this.settingsService.getIgnoredStagesForPipeline(this.props.buildDefinition.id);
+        var buildService = await BuildService.getInstance();
+        var builds = await buildService.getBuildsForPipeline(props.buildDefinition.id, undefined, undefined, 5);
 
-        this.setState({ ignoredStages: new ArrayItemProvider(ignoredStages) });
-    }
+        var allStages: string[] = []
 
-    public render(): JSX.Element {
+        for (var build of builds) {
+            var buildTimeline = await buildService.getTimelineForBuild(build.id);
+            var stages = buildTimeline?.records.filter((record, index) => record.type === "Stage") ?? [];
 
-        const { ignoredStages } = this.state;
-
-        return (
-            <div style={{ display: "flex-column", width: "30%" }}>
-                <FormItem label="Stage to Ignore:">
-                    <TextField
-                        value={this.stageToIgnore}
-                        width={TextFieldWidth.standard}
-                        onChange={(e, newValue) => (this.stageToIgnore.value = newValue)}
-                    />
-                </FormItem>
-                <Button
-                    ariaLabel="Add"
-                    iconProps={{ iconName: "Add" }}
-                    onClick={async () => await this.addIgnoredStage()}
-                />
-                <div style={{ display: "flex", height: "300px" }}>
-                    <ScrollableList
-                        itemProvider={ignoredStages}
-                        width="100%"
-                        renderRow={this.renderRow}
-                    />
-                </div>
-            </div>
-        );
-    }
-
-    private async addIgnoredStage(): Promise<void> {
-        var ignoredStages = this.state.ignoredStages.value;
-        ignoredStages.push(this.stageToIgnore.value);
-
-        this.setState({ ignoredStages: new ArrayItemProvider(ignoredStages) })
-        this.stageToIgnore.value = "";
-
-        await this.settingsService?.setIgnoredStagesForPipeline(this.props.buildDefinition.id, ignoredStages);
-    }
-
-    private async removeIgnoredStage(stageToRemove: string): Promise<void> {
-        var ignoredStages = this.state.ignoredStages.value;
-        const index = ignoredStages.indexOf(stageToRemove, 0);
-        if (index > -1) {
-            ignoredStages.splice(index, 1);
-
-            this.setState({ ignoredStages: new ArrayItemProvider(ignoredStages) })
-
-            await this.settingsService?.setIgnoredStagesForPipeline(this.props.buildDefinition.id, ignoredStages);
+            stages.forEach(stage => {
+                allStages.push(stage.name);
+            });
         }
+
+        var distinctStages = allStages.filter((stage, index) => allStages.indexOf(stage) === index);
+
+        distinctStages.forEach(stage => {
+            availableStages.push(stage);
+        });
+
+        setIgnoredStages(ignoredStages);
     }
 
-    private renderRow = (
-        index: number,
-        item: string,
-        details: IListItemDetails<string>,
-        key?: string
-    ): JSX.Element => {
-        return (
-            <ListItem key={key || "list-item" + index} index={index} details={details}>
-                <div className="list-example-row flex-row h-scroll-hidden">
-                    <div
-                        style={{ marginLeft: "10px", padding: "10px 0px" }}
-                        className="flex-column h-scroll-hidden" >
-                        <span className="text-ellipsis">{item}</span>
-                    </div>
-                    <Button
-                        style={{ marginLeft: "50px", padding: "10px 0px", width: "30px" }}
-                        ariaLabel="Remove"
-                        iconProps={{ iconName: "Delete" }}
-                        onClick={async () => await this.removeIgnoredStage(item)}
-                    />
-                </div>
-            </ListItem>
-        );
+    const renderSuggestionItem = (tag: ISuggestionItemProps<string>) => {
+        return <div className="body-m">{tag.item}</div>;
+    }
+
+    const onTagAdded = async (tag: string) => {
+        setIgnoredStages([...ignoredStages.value, tag])
+
+        await settingsService?.setIgnoredStagesForPipeline(props.buildDefinition.id, ignoredStages.value);
+    }
+
+    const onTagRemoved = async (tag: string) => {
+        setIgnoredStages(ignoredStages.value.filter(x => x !== tag));
+        await settingsService?.setIgnoredStagesForPipeline(props.buildDefinition.id, ignoredStages.value);
     };
 
+    const onSearchChanged = (searchValue: string) => {
+        var filteredItems =availableStages
+        .filter(
+            testItem =>
+                ignoredStages.value.findIndex(
+                    testSuggestion => testSuggestion == testItem
+                ) === -1
+        )
+        .filter(
+            testItem => testItem.toLowerCase().indexOf(searchValue.toLowerCase()) > -1
+        );
+
+        setSuggestions(filteredItems);
+    };
+
+    const convertItemToPill = (tag: string) => {
+        return {
+            content: tag
+        }
+    };
+
+    const areTagsEqual = (item1: string, item2: string): boolean => {
+        return item1 === item2;
+    };
+
+    return (
+        <div style={{ display: "flex-column", width: "30%" }}>
+            <FormItem label="Stage to Ignore:">
+                <TagPicker
+                    areTagsEqual={areTagsEqual}
+                    convertItemToPill={convertItemToPill}
+                    noResultsFoundText={"No Stages found"}
+                    onSearchChanged={onSearchChanged}
+                    onTagAdded={onTagAdded}
+                    onTagRemoved={onTagRemoved}
+                    renderSuggestionItem={renderSuggestionItem}
+                    selectedTags={ignoredStages}
+                    suggestions={suggestions}
+                    suggestionsLoading={false}
+                />
+            </FormItem>
+        </div>
+    );
 }
