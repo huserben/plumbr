@@ -33,6 +33,11 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
 
     public componentDidMount() {
         this.initializeState();
+
+        // Update Stage State every 60s
+        setInterval(async () => {
+            await this.initializeState();
+        }, 60000);
     }
 
     public async initializeState(): Promise<void> {

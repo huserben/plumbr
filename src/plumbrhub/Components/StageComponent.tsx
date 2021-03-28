@@ -36,6 +36,11 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
 
     public componentDidMount() {
         this.initializeState();
+
+        // Update Stage State every 60s
+        setInterval(async () => {
+            await this.initializeState();
+        }, 60000);
     }
 
     public async initializeState(): Promise<void> {
@@ -81,7 +86,7 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
             },
             onClose: async (result) => {
                 if (result !== undefined) {
-                    for (var variableGroup of result.variableGroups){
+                    for (var variableGroup of result.variableGroups) {
                         await this.buildService?.updateVariableGroup(variableGroup);
                     }
 

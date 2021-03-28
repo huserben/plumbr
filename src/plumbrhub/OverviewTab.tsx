@@ -27,11 +27,15 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
 
     public componentDidMount() {
         this.initializeState();
+
+        // Auto-Refresh every 60s
+        setInterval(async () => {
+            await this.initializeState();
+        }, 60000);
     }
 
     private async initializeState(): Promise<void> {
         this.buildService = await BuildService.getInstance();
-
         var settingsService = await SettingsService.getInstance();
 
         var includedPipelines = await settingsService.getIncludedPipelines();
@@ -51,7 +55,27 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
             ignoredStages[pipelineId] = stagesToIgnore
         }
 
-        this.setState({ builds: builds, ignoredStages: ignoredStages, ready: true })
+        var pipelineRunSorter = function (record1: Build, record2: Build): number {
+            if (record1.startTime) {
+                if (record2.startTime) {
+                    if (record1.startTime > record2.startTime) return -1;
+                    if (record1.startTime < record2.startTime) return 1;
+                    return 0;
+                }
+
+                return 1;
+            }
+
+            if (record2.startTime) {
+                return -1
+            }
+
+            return 0
+        }
+
+        var buildsSortedByDate = builds.sort(pipelineRunSorter);
+
+        this.setState({ builds: buildsSortedByDate, ignoredStages: ignoredStages, ready: true })
     }
 
     public render(): JSX.Element {
