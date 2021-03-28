@@ -1,10 +1,10 @@
 {
     "contributions": [
         {
-            "id": "panel-content",
+            "id": "approve-panel",
             "type": "ms.vss-web.external-content",
             "properties": {
-                "uri": "dist/Panel/Panel.html"
+                "uri": "dist/ApprovePanel/ApprovePanel.html"
             }
         }
     ]

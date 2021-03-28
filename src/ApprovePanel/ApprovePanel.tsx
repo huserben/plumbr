@@ -1,4 +1,4 @@
-import "./Panel.scss";
+import "./ApprovePanel.scss";
 
 import * as React from "react";
 import * as SDK from "azure-devops-extension-sdk";
@@ -10,19 +10,21 @@ import { VariableGroup } from "azure-devops-extension-api/TaskAgent";
 import { Card } from "azure-devops-ui/Card";
 import { FormItem } from "azure-devops-ui/FormItem";
 import { TextField } from "azure-devops-ui/TextField";
+import { CustomHeader, HeaderTitleArea, HeaderTitleRow, HeaderTitle, TitleSize } from "azure-devops-ui/Header";
+import { Page } from "azure-devops-ui/Page";
 
 
-export interface IPanelResult{
+export interface IApprovePanelResult {
     approvalComment: string,
     variableGroups: VariableGroup[]
 }
 
-interface IPanelContentState {
+interface IApprovePanelContentState {
     variableGroups: VariableGroup[],
     approvalComment: string
 }
 
-class PanelContent extends React.Component<{}, IPanelContentState> {
+class ApprovePanel extends React.Component<{}, IApprovePanelContentState> {
 
     constructor(props: {}) {
         super(props);
@@ -41,15 +43,6 @@ class PanelContent extends React.Component<{}, IPanelContentState> {
             this.setState({ variableGroups });
 
             if (config.dialog) {
-                // Give the host frame the size of our dialog content so that the dialog can be sized appropriately.
-                // This is the case where we know our content size and can explicitly provide it to SDK.resize. If our
-                // size is dynamic, we have to make sure our frame is visible before calling SDK.resize() with no arguments.
-                // In that case, we would instead do something like this:
-                //
-                // SDK.notifyLoadSucceeded().then(() => {
-                //    // we are visible in this callback.
-                //    SDK.resize();
-                // });
                 SDK.resize(400, 400);
             }
         });
@@ -60,11 +53,13 @@ class PanelContent extends React.Component<{}, IPanelContentState> {
 
         return (
             <div className="sample-panel flex-column flex-grow">
-                <div className="flex-grow flex-column" style={{ border: "1px solid #eee", margin: "10px 0" }}>
+                <div className="flex-grow flex-column" style={{ margin: "10px 0" }}>
                     <FormItem
                         label="Approval Comment">
                         <TextField
                             value={approvalComment}
+                            multiline={true}
+                            placeholder="Approved via Plumbr"
                             onChange={(e, newValue) => {
                                 this.setState({ approvalComment: newValue })
                             }}
@@ -72,9 +67,17 @@ class PanelContent extends React.Component<{}, IPanelContentState> {
                     </FormItem>
 
                     {variableGroups.map((vg, index) => (
-                        <Card
-                            titleProps={{ text: vg.name }}
-                        >
+                        <Page>
+                            <CustomHeader className="bolt-header-with-commandbar">
+                                <HeaderTitleArea>
+                                    <HeaderTitleRow>
+                                        <HeaderTitle className="text-ellipsis" titleSize={TitleSize.Large}>
+                                            {vg.name}
+                                        </HeaderTitle>
+                                    </HeaderTitleRow>
+                                </HeaderTitleArea>
+                            </CustomHeader>
+
                             <div className="page-content page-content-top flex-column rhythm-vertical-16">
                                 {Object.keys(vg.variables).map((variableKey, index) => (
                                     <FormItem
@@ -91,7 +94,7 @@ class PanelContent extends React.Component<{}, IPanelContentState> {
                                 ))
                                 }
                             </div>
-                        </Card>
+                        </Page>
                     ))}
                 </div>
                 <ButtonGroup className="sample-panel-button-bar">
@@ -110,7 +113,7 @@ class PanelContent extends React.Component<{}, IPanelContentState> {
     }
 
     private dismiss(isApproved: boolean) {
-        var result: IPanelResult | undefined = undefined;
+        var result: IApprovePanelResult | undefined = undefined;
 
         if (isApproved) {
             result = {
@@ -129,4 +132,4 @@ class PanelContent extends React.Component<{}, IPanelContentState> {
     }
 }
 
-showRootComponent(<PanelContent />);
+showRootComponent(<ApprovePanel />);

@@ -7,7 +7,7 @@ import * as SDK from "azure-devops-extension-sdk";
 import { CommonServiceIds, IGlobalMessagesService, IHostPageLayoutService } from "azure-devops-extension-api";
 import { BuildService, IBuildService } from "../Services/BuildService";
 import { ISettingsService, SettingsService } from "../Services/SettingsService";
-import { IPanelResult } from "../../Panel/Panel";
+import { IApprovePanelResult } from "../../ApprovePanel/ApprovePanel";
 
 export interface IStageComponentProps {
     currentStage: TimelineRecord,
@@ -73,9 +73,9 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
         console.log(`Following Variable groups are defined for stage ${this.props.currentStage.name}: ${cleanedIds}`);
         var variableGroups = await this.buildService?.getVariableGroupsById(cleanedIds);
 
-        panelService.openPanel<IPanelResult | undefined>(SDK.getExtensionContext().id + ".panel-content", {
+        panelService.openPanel<IApprovePanelResult | undefined>(SDK.getExtensionContext().id + ".approve-panel", {
             title: `${this.props.currentStage.name}`,
-            description: `Approve Stage`,
+            description: `Configure and Approve Stage`,
             configuration: {
                 stage: this.props.currentStage,
                 variableGroups: variableGroups
