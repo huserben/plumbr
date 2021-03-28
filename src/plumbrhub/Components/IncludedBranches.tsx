@@ -7,20 +7,20 @@ import React, { useEffect } from "react";
 import { BuildService } from "../Services/BuildService";
 import { ISettingsService, SettingsService } from "../Services/SettingsService";
 
-export interface IIgnoredPipelineStageProps {
+export interface IIncludedBranchesProps {
     buildDefinition: BuildDefinitionReference,
 }
 
-export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageProps> = (props) => {
-    const [ignoredStages, setIgnoredStages] = useObservableArray<string>([]);
+export const IncludedBranches: React.FunctionComponent<IIncludedBranchesProps> = (props) => {
+    const [includedBranches, setIncludedBranches] = useObservableArray<string>([]);
     const [suggestions, setSuggestions] = useObservableArray<string>([]);
 
-    let availableStages: string[] = []
+    let availableBranches: string[] = []
 
     let settingsService: ISettingsService | undefined = undefined;
 
     useEffect(() => {
-        if (availableStages.length < 1) {
+        if (availableBranches.length < 1) {
             loadState();
         }
     })
@@ -28,29 +28,14 @@ export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageP
     const loadState = async () => {
         settingsService = await SettingsService.getInstance();
 
-        var ignoredStages = await settingsService.getIgnoredStagesForPipeline(props.buildDefinition.id);
+        var includedBranches = await settingsService.getIncludedBranches(props.buildDefinition.id);
 
         var buildService = await BuildService.getInstance();
         var builds = await buildService.getBuildsForPipeline(props.buildDefinition.id);
+        var branches: string[] = builds.map((build, index) => (build.sourceBranch));
+        availableBranches = branches.filter((branch, index) => branches.indexOf(branch) === index);
 
-        var allStages: string[] = []
-
-        for (var build of builds) {
-            var buildTimeline = await buildService.getTimelineForBuild(build.id);
-            var stages = buildTimeline?.records.filter((record, index) => record.type === "Stage") ?? [];
-
-            stages.forEach(stage => {
-                allStages.push(stage.name);
-            });
-        }
-
-        var distinctStages = allStages.filter((stage, index) => allStages.indexOf(stage) === index);
-
-        distinctStages.forEach(stage => {
-            availableStages.push(stage);
-        });
-
-        setIgnoredStages(ignoredStages);
+        setIncludedBranches(includedBranches);
     }
 
     const renderSuggestionItem = (tag: ISuggestionItemProps<string>) => {
@@ -58,27 +43,27 @@ export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageP
     }
 
     const onTagAdded = async (tag: string) => {
-        setIgnoredStages([...ignoredStages.value, tag])
+        setIncludedBranches([...includedBranches.value, tag])
 
-        await settingsService?.setIgnoredStagesForPipeline(props.buildDefinition.id, ignoredStages.value);
+        await settingsService?.setIncludedBranches(props.buildDefinition.id, includedBranches.value);
     }
 
     const onTagRemoved = async (tag: string) => {
-        setIgnoredStages(ignoredStages.value.filter(x => x !== tag));
-        await settingsService?.setIgnoredStagesForPipeline(props.buildDefinition.id, ignoredStages.value);
+        setIncludedBranches(includedBranches.value.filter(x => x !== tag));
+        await settingsService?.setIncludedBranches(props.buildDefinition.id, includedBranches.value);
     };
 
     const onSearchChanged = (searchValue: string) => {
-        var filteredItems =availableStages
-        .filter(
-            testItem =>
-                ignoredStages.value.findIndex(
-                    testSuggestion => testSuggestion == testItem
-                ) === -1
-        )
-        .filter(
-            testItem => testItem.toLowerCase().indexOf(searchValue.toLowerCase()) > -1
-        );
+        var filteredItems = availableBranches
+            .filter(
+                testItem =>
+                    includedBranches.value.findIndex(
+                        testSuggestion => testSuggestion == testItem
+                    ) === -1
+            )
+            .filter(
+                testItem => testItem.toLowerCase().indexOf(searchValue.toLowerCase()) > -1
+            );
 
         setSuggestions(filteredItems);
     };
@@ -95,7 +80,7 @@ export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageP
 
     return (
         <div>
-            <FormItem label="Stage to Ignore:">
+            <FormItem label="Branches to include:">
                 <TagPicker
                     areTagsEqual={areTagsEqual}
                     convertItemToPill={convertItemToPill}
@@ -104,7 +89,7 @@ export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageP
                     onTagAdded={onTagAdded}
                     onTagRemoved={onTagRemoved}
                     renderSuggestionItem={renderSuggestionItem}
-                    selectedTags={ignoredStages}
+                    selectedTags={includedBranches}
                     suggestions={suggestions}
                     suggestionsLoading={false}
                 />

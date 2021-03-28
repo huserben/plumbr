@@ -9,6 +9,9 @@ export interface ISettingsService {
     getIgnoredStagesForPipeline(pipelineId: number): Promise<string[]>;
     setIgnoredStagesForPipeline(pipelineId: number, ignoredStages: string[]): Promise<void>;
 
+    getIncludedBranches(pipelineId: number):Promise<string[]>;
+    setIncludedBranches(pipelineId: number, includedBranches: string[]): Promise<void>
+
     getVariableGroupConfig(pipelineId: number): Promise<{ [id: string]: number[] }>;
     setVariableGroupConfig(pipelineId: number, variableGroupConfig: { [id: string]: number[] }): Promise<void>;
 }
@@ -20,6 +23,7 @@ export class SettingsService implements ISettingsService {
     private dataManager?: IExtensionDataManager;
 
     private includedPipelinesId: string = "";
+    private includedBranchesId: string = "";
 
     private pipelineSettingPrefix: string = "";
 
@@ -39,6 +43,7 @@ export class SettingsService implements ISettingsService {
         var project = await projectService.getProject();
 
         this.includedPipelinesId = `${project?.id}IncludedPipelilnes`;
+        this.includedBranchesId = `${project?.id}IncludedBranches`;
         this.pipelineSettingPrefix = `${project?.id}Pipelines`
     }
 
@@ -64,6 +69,20 @@ export class SettingsService implements ISettingsService {
 
     public async setIncludedPipelines(includedPipelines: number[]): Promise<void> {
         await this.dataManager?.setValue<number[]>(this.includedPipelinesId, includedPipelines);
+    }
+
+    public async getIncludedBranches(pipelineId: number): Promise<string[]> {
+        var includedBranches = await this.dataManager?.getValue<string[]>(`${this.includedBranchesId}${pipelineId}`);
+
+        if (includedBranches) {
+            return includedBranches;
+        }
+
+        return [];
+    }
+    
+    public async setIncludedBranches(pipelineId: number, includedBranches: string[]): Promise<void> {
+        await this.dataManager?.setValue<string[]>(`${this.includedBranchesId}${pipelineId}`, includedBranches);
     }
 
     public async addIncludedPipeline(pipelineId: number): Promise<void> {

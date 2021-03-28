@@ -120,7 +120,7 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
                             </HeaderTitle>
                         </HeaderTitleRow>
                         <HeaderDescription>
-
+                            {this.props.build.sourceBranch}
                             <Link href={this.props.build._links.web.href}>{buildMessage} (Build {this.props.build.id})</Link>
                         </HeaderDescription>
                     </HeaderTitleArea>

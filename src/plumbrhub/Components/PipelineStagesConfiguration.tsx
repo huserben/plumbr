@@ -56,7 +56,7 @@ export class PipelineStagesConfiguration extends React.Component<IPipelineStages
         const { stageConfigurations } = this.state;
 
         return (
-            <div style={{ display: "flex-column", width: "70%" }}>
+            <div style={{ display: "flex-column", width: "50%" }}>
                 <div style={{ display: "flex-row" }}>
                     <FormItem label="Stage with Custom Config:">
                         <TextField

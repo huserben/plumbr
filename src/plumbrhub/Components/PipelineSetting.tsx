@@ -1,12 +1,10 @@
-import { Build, BuildDefinitionReference } from "azure-devops-extension-api/Build";
+import { BuildDefinitionReference } from "azure-devops-extension-api/Build";
 import { Card } from "azure-devops-ui/Card";
 import { Checkbox } from "azure-devops-ui/Checkbox";
-import { Dropdown } from "azure-devops-ui/Dropdown";
-import { FormItem } from "azure-devops-ui/FormItem";
 import React from "react";
-import { BuildService } from "../Services/BuildService";
 import { ISettingsService, SettingsService } from "../Services/SettingsService";
 import { IgnoredPiplineStage } from "./IgnoredPipelineStage";
+import { IncludedBranches } from "./IncludedBranches";
 import { PipelineStagesConfiguration } from "./PipelineStagesConfiguration";
 
 export interface IPipelineSettingProps {
@@ -14,8 +12,7 @@ export interface IPipelineSettingProps {
 }
 
 interface IPipelineSettingsState {
-    includePipeline: boolean,
-    branches: string[]
+    includePipeline: boolean
 }
 
 export class PipelineSetting extends React.Component<IPipelineSettingProps, IPipelineSettingsState> {
@@ -25,8 +22,7 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
         super(props);
 
         this.state = {
-            includePipeline: false,
-            branches: []
+            includePipeline: false
         }
     }
 
@@ -35,16 +31,11 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
     }
 
     private async initializeState(): Promise<void> {
-        var buildService = await BuildService.getInstance();
         this.settingsService = await SettingsService.getInstance();
 
         var includedPipelines: number[] = await this.settingsService.getIncludedPipelines();
 
-        var buildsForDefinition: Build[] = await buildService.getBuildsForPipeline(this.props.buildDefinition.id) ?? [];
-        var branches: string[] = buildsForDefinition.map((build, index) => (build.sourceBranch));
-        var distinctBranches = branches.filter((branch, index) => branches.indexOf(branch) === index);
-
-        this.setState({ branches: distinctBranches, includePipeline: includedPipelines.includes(this.props.buildDefinition.id) });
+        this.setState({ includePipeline: includedPipelines.includes(this.props.buildDefinition.id) });
     }
 
     private async setIncludedPipelineState(isIncluded: boolean) {
@@ -59,7 +50,7 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
     }
 
     public render(): JSX.Element {
-        const { includePipeline, branches } = this.state;
+        const { includePipeline } = this.state;
 
         return (
             <Card
@@ -71,21 +62,15 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
                             checked={includePipeline}
                             label="Include Pipeline"
                         />
-
-                        <FormItem
-                            label="Branches:">
-                            <Dropdown
-                                disabled={!includePipeline}
-                                items={branches}
-                                width={350}
-                            />
-                        </FormItem>
                     </div>
 
                     {includePipeline === true &&
                         <div className="flex-row" style={{ margin: "8px", alignItems: "top" }}>
                             <PipelineStagesConfiguration buildDefinition={this.props.buildDefinition} />
-                            <IgnoredPiplineStage buildDefinition={this.props.buildDefinition} />
+                            <div className="flex-column rhythm-vertical-16" style={{ display: "flex-column", width: "50%" }}>
+                                <IncludedBranches buildDefinition={this.props.buildDefinition} />
+                                <IgnoredPiplineStage buildDefinition={this.props.buildDefinition} />
+                            </div>
                         </div>
                     }
                 </div>
