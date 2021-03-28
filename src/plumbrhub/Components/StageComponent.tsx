@@ -66,11 +66,10 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
         const panelService = await SDK.getService<IHostPageLayoutService>(CommonServiceIds.HostPageLayoutService);
 
         var variableGroupConfiguration = await this.settingsService?.getVariableGroupConfig(this.props.pipelineId) ?? {};
-        var variableGroupIds = variableGroupConfiguration[this.props.currentStage.name] ?? [];
+        var variableGroupIds = variableGroupConfiguration[this.props.currentStage.identifier] ?? [];
 
         // Cleanup NaNs just in case
         var cleanedIds = variableGroupIds.filter((id, index) => !Number.isNaN(id));
-        console.log(`Following Variable groups are defined for stage ${this.props.currentStage.name}: ${cleanedIds}`);
         var variableGroups = await this.buildService?.getVariableGroupsById(cleanedIds);
 
         panelService.openPanel<IApprovePanelResult | undefined>(SDK.getExtensionContext().id + ".approve-panel", {
@@ -82,10 +81,6 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
             },
             onClose: async (result) => {
                 if (result !== undefined) {
-                    console.log(`Approval Comment: ${result.approvalComment}`);
-
-                    console.log(`Updating Variable Groups`);
-
                     for (var variableGroup of result.variableGroups){
                         await this.buildService?.updateVariableGroup(variableGroup);
                     }

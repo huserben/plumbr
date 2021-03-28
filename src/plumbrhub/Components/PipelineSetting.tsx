@@ -71,7 +71,7 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
     }
 
     private async loadPipelineDetails(): Promise<void> {
-        var builds = await this.buildService?.getBuildsForPipeline(this.props.buildDefinition.id, BuildStatus.Completed, undefined, 10) ?? [];
+        var builds = await this.buildService?.getBuildsForPipeline(this.props.buildDefinition.id, undefined, undefined, 10) ?? [];
         this.setState({ pipelineBuilds: builds });
 
         var allStages: TimelineRecord[] = []
@@ -85,7 +85,7 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
             });
         }
 
-        var distinctStages = allStages.filter((stage, index, arr) => arr.findIndex(t => t.name === stage.name) === index);
+        var distinctStages = allStages.filter((stage, index, arr) => arr.findIndex(t => t.identifier === stage.identifier) === index);
         this.setState({ stages: distinctStages })
     }
 

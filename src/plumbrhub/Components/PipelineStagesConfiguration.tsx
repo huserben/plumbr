@@ -54,15 +54,15 @@ export class PipelineStagesConfiguration extends React.Component<IPipelineStages
                     this.props.stages.length < 1 ?
                         <Spinner label="Loading Stage Configuration" size={SpinnerSize.large} />
                         :
-                        this.props.stages.filter((stage, index) => !ignoredStages.includes(stage.name)).map((stage, index) => (
+                        this.props.stages.filter((stage, index) => !ignoredStages.includes(stage.identifier)).map((stage, index) => (
                             <Card
                                 titleProps={{ text: `${stage.name} Variable Group Configuration` }}>
                                 <div className="rhythm-vertical-8 flex-column">
                                     {this.props.variableGroups.map((vg, index) => (
                                         <Checkbox
                                             label={vg.name}
-                                            checked={stageConfigurations[stage.name]?.includes(vg.id) ?? false}
-                                            onChange={(event, checked) => this.onVariableGroupConfigChanged(checked, stage.name, vg.id)}
+                                            checked={stageConfigurations[stage.identifier]?.includes(vg.id) ?? false}
+                                            onChange={(event, checked) => this.onVariableGroupConfigChanged(checked, stage.identifier, vg.id)}
                                         />
                                     ))}
                                 </div>

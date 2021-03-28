@@ -53,14 +53,14 @@ export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageP
         .filter(
             testItem =>
                 ignoredStages.value.findIndex(
-                    testSuggestion => testSuggestion == testItem.name
+                    testSuggestion => testSuggestion == testItem.identifier
                 ) === -1
         )
         .filter(
-            testItem => testItem.name.toLowerCase().indexOf(searchValue.toLowerCase()) > -1
+            testItem => testItem.identifier.toLowerCase().indexOf(searchValue.toLowerCase()) > -1
         );
 
-        setSuggestions(filteredItems.map(i => i.name));
+        setSuggestions(filteredItems.map(i => i.identifier));
     };
 
     const convertItemToPill = (tag: string) => {
