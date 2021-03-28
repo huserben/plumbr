@@ -1,4 +1,4 @@
-import { BuildDefinitionReference } from "azure-devops-extension-api/Build/Build";
+import { Build, BuildDefinitionReference } from "azure-devops-extension-api/Build/Build";
 import { useObservableArray } from "azure-devops-ui/Core/Observable";
 import { FormItem } from "azure-devops-ui/FormItem";
 import { ISuggestionItemProps } from "azure-devops-ui/SuggestionsList";
@@ -9,18 +9,21 @@ import { ISettingsService, SettingsService } from "../Services/SettingsService";
 
 export interface IIgnoredPipelineStageProps {
     buildDefinition: BuildDefinitionReference,
+    builds: Build[]
 }
 
 export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageProps> = (props) => {
     const [ignoredStages, setIgnoredStages] = useObservableArray<string>([]);
     const [suggestions, setSuggestions] = useObservableArray<string>([]);
 
+    let isLoading : boolean = false;
     let availableStages: string[] = []
 
     let settingsService: ISettingsService | undefined = undefined;
 
     useEffect(() => {
-        if (availableStages.length < 1) {
+        if (!isLoading) {
+            isLoading = true;
             loadState();
         }
     })
@@ -29,13 +32,13 @@ export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageP
         settingsService = await SettingsService.getInstance();
 
         var ignoredStages = await settingsService.getIgnoredStagesForPipeline(props.buildDefinition.id);
+        setIgnoredStages(ignoredStages);
 
         var buildService = await BuildService.getInstance();
-        var builds = await buildService.getBuildsForPipeline(props.buildDefinition.id);
 
         var allStages: string[] = []
 
-        for (var build of builds) {
+        for (var build of props.builds) {
             var buildTimeline = await buildService.getTimelineForBuild(build.id);
             var stages = buildTimeline?.records.filter((record, index) => record.type === "Stage") ?? [];
 
@@ -49,8 +52,6 @@ export const IgnoredPiplineStage: React.FunctionComponent<IIgnoredPipelineStageP
         distinctStages.forEach(stage => {
             availableStages.push(stage);
         });
-
-        setIgnoredStages(ignoredStages);
     }
 
     const renderSuggestionItem = (tag: ISuggestionItemProps<string>) => {

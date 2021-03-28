@@ -1,4 +1,4 @@
-import { BuildDefinitionReference } from "azure-devops-extension-api/Build/Build";
+import { Build, BuildDefinitionReference } from "azure-devops-extension-api/Build/Build";
 import { useObservableArray } from "azure-devops-ui/Core/Observable";
 import { FormItem } from "azure-devops-ui/FormItem";
 import { ISuggestionItemProps } from "azure-devops-ui/SuggestionsList";
@@ -9,18 +9,21 @@ import { ISettingsService, SettingsService } from "../Services/SettingsService";
 
 export interface IIncludedBranchesProps {
     buildDefinition: BuildDefinitionReference,
+    builds: Build[]
 }
 
 export const IncludedBranches: React.FunctionComponent<IIncludedBranchesProps> = (props) => {
     const [includedBranches, setIncludedBranches] = useObservableArray<string>([]);
     const [suggestions, setSuggestions] = useObservableArray<string>([]);
 
+    let isLoading : boolean = false;
     let availableBranches: string[] = []
 
     let settingsService: ISettingsService | undefined = undefined;
 
     useEffect(() => {
-        if (availableBranches.length < 1) {
+        if (!isLoading) {
+            isLoading = true;
             loadState();
         }
     })
@@ -30,12 +33,10 @@ export const IncludedBranches: React.FunctionComponent<IIncludedBranchesProps> =
 
         var includedBranches = await settingsService.getIncludedBranches(props.buildDefinition.id);
 
-        var buildService = await BuildService.getInstance();
-        var builds = await buildService.getBuildsForPipeline(props.buildDefinition.id);
-        var branches: string[] = builds.map((build, index) => (build.sourceBranch));
-        availableBranches = branches.filter((branch, index) => branches.indexOf(branch) === index);
-
         setIncludedBranches(includedBranches);
+
+        var branches: string[] = props.builds.map((build, index) => (build.sourceBranch));
+        availableBranches = branches.filter((branch, index) => branches.indexOf(branch) === index);
     }
 
     const renderSuggestionItem = (tag: ISuggestionItemProps<string>) => {
