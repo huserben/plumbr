@@ -54,8 +54,10 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
     }
 
     private async setIncludedPipelineState(isIncluded: boolean) {
-        var builds = this.state.pipelineBuilds;
+        this.setState({ includePipeline: isIncluded });
 
+        var builds = this.state.pipelineBuilds;
+        
         if (isIncluded) {
             await this.settingsService?.addIncludedPipeline(this.props.buildDefinition.id);
 
@@ -66,8 +68,6 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
         else {
             await this.settingsService?.removeIncludedPipeline(this.props.buildDefinition.id);
         }
-
-        this.setState({ includePipeline: isIncluded });
     }
 
     private async loadPipelineDetails(): Promise<void> {
