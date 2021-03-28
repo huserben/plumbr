@@ -19,12 +19,9 @@ export interface ISettingsService {
 export class SettingsService implements ISettingsService {
 
     private static instance: SettingsService;
-
     private dataManager?: IExtensionDataManager;
 
     private includedPipelinesId: string = "";
-    private includedBranchesId: string = "";
-
     private pipelineSettingPrefix: string = "";
 
     private constructor() {
@@ -43,7 +40,6 @@ export class SettingsService implements ISettingsService {
         var project = await projectService.getProject();
 
         this.includedPipelinesId = `${project?.id}IncludedPipelilnes`;
-        this.includedBranchesId = `${project?.id}IncludedBranches`;
         this.pipelineSettingPrefix = `${project?.id}Pipelines`
     }
 
@@ -72,7 +68,7 @@ export class SettingsService implements ISettingsService {
     }
 
     public async getIncludedBranches(pipelineId: number): Promise<string[]> {
-        var includedBranches = await this.dataManager?.getValue<string[]>(`${this.includedBranchesId}${pipelineId}`);
+        var includedBranches = await this.dataManager?.getValue<string[]>(`${this.pipelineSettingPrefix}${pipelineId}IncludedBranches`);
 
         if (includedBranches) {
             return includedBranches;
@@ -82,7 +78,7 @@ export class SettingsService implements ISettingsService {
     }
     
     public async setIncludedBranches(pipelineId: number, includedBranches: string[]): Promise<void> {
-        await this.dataManager?.setValue<string[]>(`${this.includedBranchesId}${pipelineId}`, includedBranches);
+        await this.dataManager?.setValue<string[]>(`${this.pipelineSettingPrefix}${pipelineId}IncludedBranches`, includedBranches);
     }
 
     public async addIncludedPipeline(pipelineId: number): Promise<void> {

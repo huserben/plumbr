@@ -1,6 +1,6 @@
 import { Build, BuildDefinitionReference } from "azure-devops-extension-api/Build";
 import { Card } from "azure-devops-ui/Card";
-import { Checkbox } from "azure-devops-ui/Checkbox";
+import { Toggle } from "azure-devops-ui/Toggle";
 import React from "react";
 import { BuildService, IBuildService } from "../Services/BuildService";
 import { ISettingsService, SettingsService } from "../Services/SettingsService";
@@ -41,8 +41,8 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
         var includedPipelines: number[] = await this.settingsService.getIncludedPipelines();
         var isIncluded = includedPipelines.includes(this.props.buildDefinition.id);
 
-        var builds : Build[] = [];
-        if (isIncluded){
+        var builds: Build[] = [];
+        if (isIncluded) {
             builds = await this.buildService.getBuildsForPipeline(this.props.buildDefinition.id);
         }
 
@@ -55,7 +55,7 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
         if (isIncluded) {
             await this.settingsService?.addIncludedPipeline(this.props.buildDefinition.id);
 
-            if (builds.length < 1){
+            if (builds.length < 1) {
                 builds = await this.buildService?.getBuildsForPipeline(this.props.buildDefinition.id) ?? [];
             }
         }
@@ -74,19 +74,22 @@ export class PipelineSetting extends React.Component<IPipelineSettingProps, IPip
                 titleProps={{ text: this.props.buildDefinition.name }}>
                 <div className="flex-column rhythm-vertical-16">
                     <div className="flex-row" style={{ margin: "8px", alignItems: "center" }}>
-                        <Checkbox
+                        <Toggle
+                            offText="Pipeline not Included"
+                            onText="Pipeline Included"
                             onChange={async (event, checked) => await this.setIncludedPipelineState(checked)}
                             checked={includePipeline}
-                            label="Include Pipeline"
                         />
                     </div>
 
                     {includePipeline === true &&
                         <div className="flex-row" style={{ margin: "8px", alignItems: "top" }}>
-                            <PipelineStagesConfiguration buildDefinition={this.props.buildDefinition} />
                             <div className="flex-column rhythm-vertical-16" style={{ display: "flex-column", width: "50%" }}>
                                 <IncludedBranches buildDefinition={this.props.buildDefinition} builds={pipelineBuilds} />
                                 <IgnoredPiplineStage buildDefinition={this.props.buildDefinition} builds={pipelineBuilds} />
+                            </div>
+                            <div style={{ display: "flex-column", width: "50%" }}>
+                                <PipelineStagesConfiguration buildDefinition={this.props.buildDefinition} />
                             </div>
                         </div>
                     }

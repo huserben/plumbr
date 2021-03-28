@@ -56,7 +56,7 @@ export class PipelineStagesConfiguration extends React.Component<IPipelineStages
         const { stageConfigurations } = this.state;
 
         return (
-            <div style={{ display: "flex-column", width: "50%" }}>
+            <div>
                 <div style={{ display: "flex-row" }}>
                     <FormItem label="Stage with Custom Config:">
                         <TextField
@@ -79,7 +79,6 @@ export class PipelineStagesConfiguration extends React.Component<IPipelineStages
                         renderRow={this.renderRow}
                     />
                 </div>
-
             </div>
         );
     }
@@ -91,9 +90,9 @@ export class PipelineStagesConfiguration extends React.Component<IPipelineStages
 
         console.log(`Add Custom config for Stage ${this.stageWithCustomConfig.value}`);
 
-        this.setState({ stageConfigurations: stagesWithConfig})
+        this.setState({ stageConfigurations: stagesWithConfig })
         this.stageWithCustomConfig.value = "";
-        
+
         await this.settingsService?.setVariableGroupConfig(this.props.buildDefinition.id, stagesWithConfig);
     }
 
@@ -102,7 +101,7 @@ export class PipelineStagesConfiguration extends React.Component<IPipelineStages
         console.log(`Removing Custom config for Stage ${stageConfigToRemove}`);
 
         delete stagesWithConfig[stageConfigToRemove]
-        this.setState({ stageConfigurations: stagesWithConfig})
+        this.setState({ stageConfigurations: stagesWithConfig })
         await this.settingsService?.setVariableGroupConfig(this.props.buildDefinition.id, stagesWithConfig);
     }
 
@@ -121,9 +120,9 @@ export class PipelineStagesConfiguration extends React.Component<IPipelineStages
 
         var newStageConfiguration = this.state.stageConfigurations;
         newStageConfiguration[stageId] = currentlySelectedVariableGroups;
-        this.setState({stageConfigurations: newStageConfiguration})
+        this.setState({ stageConfigurations: newStageConfiguration })
 
-        await this.settingsService?.setVariableGroupConfig(this.props.buildDefinition.id, newStageConfiguration)        
+        await this.settingsService?.setVariableGroupConfig(this.props.buildDefinition.id, newStageConfiguration)
     }
 
     private renderRow = (
