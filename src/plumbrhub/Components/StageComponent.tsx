@@ -55,7 +55,7 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
             commandBarItems.push({
                 important: true,
                 id: "approveStage",
-                text: "Promote",
+                text: "Approve",
                 disabled: approval.state !== TimelineRecordState.InProgress,
                 onActivate: () => { this.onPanelClick() },
                 iconProps: {
