@@ -22,7 +22,6 @@ export interface IStageComponentProps {
 
 export interface IStageComponentState {
     commandBarItems: IHeaderCommandBarItem[],
-    currentStageStage: TimelineRecordState,
     approval?: TimelineRecord,
     artifacts: ArrayItemProvider<BuildArtifact>
 }
@@ -31,12 +30,13 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
     private buildService?: IBuildService;
     private settingsService?: ISettingsService;
 
+    private wasManuallyApproved: boolean = false;
+
     constructor(props: IStageComponentProps) {
         super(props);
 
         this.state = {
             commandBarItems: [],
-            currentStageStage: props.currentStage.state,
             artifacts: new ArrayItemProvider<BuildArtifact>([])
         }
     }
@@ -52,8 +52,9 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
 
     public async initializeState(): Promise<void> {
         this.buildService = await BuildService.getInstance();
-
         this.settingsService = await SettingsService.getInstance();
+
+        this.wasManuallyApproved = false;
 
         var commandBarItems: IHeaderCommandBarItem[] = [];
         var approval: TimelineRecord | undefined = this.buildService.getApprovalForStage(this.props.timelineRecords, this.props.currentStage);
@@ -114,7 +115,8 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
             var adjustedCommandBarItem = this.state.commandBarItems[0]
             adjustedCommandBarItem.disabled = true;
 
-            this.setState({ currentStageStage: TimelineRecordState.InProgress, commandBarItems: [adjustedCommandBarItem] });
+            this.wasManuallyApproved = true;
+            this.setState({ commandBarItems: [adjustedCommandBarItem] });
 
             await this.showApprovalSuccessMessage();
         }
@@ -130,33 +132,39 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
 
     private renderStatus = (className?: string) => {
         var status: IStatusProps = Statuses.Skipped;
-        switch (this.state.currentStageStage) {
-            case TimelineRecordState.Completed:
-                switch (this.props.currentStage.result) {
-                    case TaskResult.Succeeded:
-                        status = Statuses.Success;
-                        break;
-                    case TaskResult.Failed:
-                        status = Statuses.Failed;
-                        break;
-                    case TaskResult.SucceededWithIssues:
-                        status = Statuses.Warning;
-                        break;
-                    case TaskResult.Canceled:
-                    case TaskResult.Abandoned:
-                        status = Statuses.Canceled
-                        break;
-                    case TaskResult.Skipped:
-                        status = Statuses.Skipped
-                }
 
-                break;
-            case TimelineRecordState.InProgress:
-                status = Statuses.Running;
-                break;
-            case TimelineRecordState.Pending:
-                status = Statuses.Waiting;
-                break;
+        if (this.wasManuallyApproved) {
+            status = Statuses.Running;
+        }
+        else {
+            switch (this.props.currentStage.state) {
+                case TimelineRecordState.Completed:
+                    switch (this.props.currentStage.result) {
+                        case TaskResult.Succeeded:
+                            status = Statuses.Success;
+                            break;
+                        case TaskResult.Failed:
+                            status = Statuses.Failed;
+                            break;
+                        case TaskResult.SucceededWithIssues:
+                            status = Statuses.Warning;
+                            break;
+                        case TaskResult.Canceled:
+                        case TaskResult.Abandoned:
+                            status = Statuses.Canceled
+                            break;
+                        case TaskResult.Skipped:
+                            status = Statuses.Skipped
+                    }
+
+                    break;
+                case TimelineRecordState.InProgress:
+                    status = Statuses.Running;
+                    break;
+                case TimelineRecordState.Pending:
+                    status = Statuses.Waiting;
+                    break;
+            }
         }
 
         return <Status {...status} className={className} size={StatusSize.l} />;
