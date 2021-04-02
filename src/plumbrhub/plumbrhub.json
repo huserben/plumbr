@@ -1,7 +1,7 @@
 {   
     "contributions": [
         {
-            "id": "pumbr",
+            "id": "plumbr",
             "type": "ms.vss-web.hub",
             "targets": [
                 "ms.vss-build-web.build-release-hub-group"

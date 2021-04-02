@@ -44,7 +44,7 @@ class HubContent extends React.Component<{}, IHubContentState> {
         return (
             <Page className="plubmrhub flex-grow">
 
-                <Header title="Plumbr Hub"
+                <Header title="Plumbr - Your Pipeline Manager"
                     commandBarItems={this.getCommandBarItems()}
                     description={headerDescription}
                     titleSize={useLargeTitle ? TitleSize.Large : TitleSize.Medium} />
