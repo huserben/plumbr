@@ -47,7 +47,7 @@ export class OverviewTab extends React.Component<{}, IOverviewTabState> {
             var includedBranches = await settingsService.getIncludedBranches(pipelineId);
 
             for (var branch of includedBranches) {
-                var runsOfPipeline = await this.buildService.getBuildsForPipeline(pipelineId, BuildStatus.InProgress, branch, 10);
+                var runsOfPipeline = await this.buildService.getBuildsForPipeline(pipelineId, undefined, branch, 10);
                 builds.push.apply(builds, runsOfPipeline);
             }
 
