@@ -1,4 +1,4 @@
-import { TaskResult, TimelineRecord, TimelineRecordState } from "azure-devops-extension-api/Build";
+import { BuildArtifact, TaskResult, TimelineRecord, TimelineRecordState } from "azure-devops-extension-api/Build";
 import * as React from "react";
 import { Card } from "azure-devops-ui/Card";
 import { IStatusProps, Statuses, Status, StatusSize } from "azure-devops-ui/Status";
@@ -8,17 +8,23 @@ import { CommonServiceIds, IGlobalMessagesService, IHostPageLayoutService } from
 import { BuildService, IBuildService } from "../Services/BuildService";
 import { ISettingsService, SettingsService } from "../Services/SettingsService";
 import { IApprovePanelResult } from "../../ApprovePanel/ApprovePanel";
+import { ScrollableList, IListItemDetails, ListSelection, ListItem } from "azure-devops-ui/List";
+import { ArrayItemProvider } from "azure-devops-ui/Utilities/Provider";
+import { Icon, IconSize } from "azure-devops-ui/Icon";
+import { Link } from "azure-devops-ui/Link";
 
 export interface IStageComponentProps {
     currentStage: TimelineRecord,
     timelineRecords: TimelineRecord[],
-    pipelineId: number
+    pipelineId: number,
+    buildId: number
 }
 
 export interface IStageComponentState {
     commandBarItems: IHeaderCommandBarItem[],
     currentStageStage: TimelineRecordState,
-    approval?: TimelineRecord
+    approval?: TimelineRecord,
+    artifacts: ArrayItemProvider<BuildArtifact>
 }
 
 export class StageComponent extends React.Component<IStageComponentProps, IStageComponentState> {
@@ -30,7 +36,8 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
 
         this.state = {
             commandBarItems: [],
-            currentStageStage: props.currentStage.state
+            currentStageStage: props.currentStage.state,
+            artifacts: new ArrayItemProvider<BuildArtifact>([])
         }
     }
 
@@ -65,6 +72,9 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
         }
 
         this.setState({ approval: approval, commandBarItems: commandBarItems });
+
+        var artifactsOfStage = await this.buildService.getArtifactsForStage(this.props.buildId, this.props.timelineRecords, this.props.currentStage);
+        this.setState({ artifacts: new ArrayItemProvider<BuildArtifact>(artifactsOfStage) });
     }
 
     private async onPanelClick(): Promise<void> {
@@ -154,7 +164,7 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
 
     public render(): JSX.Element {
 
-        const { commandBarItems } = this.state;
+        const { commandBarItems, artifacts } = this.state;
 
         return (
             <Card
@@ -162,7 +172,34 @@ export class StageComponent extends React.Component<IStageComponentProps, IStage
                 titleProps={{ text: this.props.currentStage.name }}
                 headerIconProps={{ render: this.renderStatus }}
                 headerCommandBarItems={commandBarItems}>
+                <div style={{ display: "flex", maxHeight: "300px" }}>
+                    <ScrollableList
+                        itemProvider={artifacts}
+                        renderRow={this.renderArtifact}
+                        width="100%" />
+                </div>
             </Card>
         );
     }
+
+    private renderArtifact = (
+        index: number,
+        item: BuildArtifact,
+        details: IListItemDetails<BuildArtifact>,
+        key?: string
+    ): JSX.Element => {
+        return (
+            <ListItem key={key || "list-item" + index} index={index} details={details}>
+                <div className="flex-row h-scroll-hidden">
+                    <Icon iconName="CloudDownload" />
+                    <div
+                        style={{ marginLeft: "10px", padding: "10px 0px" }}
+                        className="flex-column h-scroll-hidden">
+                        <Link href={item.resource.downloadUrl}
+                            target="_blank">{item.name}</Link>
+                    </div>
+                </div>
+            </ListItem>
+        );
+    };
 }

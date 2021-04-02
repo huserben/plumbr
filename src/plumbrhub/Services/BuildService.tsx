@@ -1,7 +1,7 @@
 import { CommonServiceIds, IProjectInfo, IProjectPageService, getClient, ILocationService } from "azure-devops-extension-api";
 import * as adoBuild from "azure-devops-extension-api/Build";
 import * as adoTask from "azure-devops-extension-api/TaskAgent"
-import { Build, BuildDefinitionReference, BuildQueryOrder, BuildRestClient, BuildStatus, Timeline, TimelineRecord } from "azure-devops-extension-api/Build";
+import { Build, BuildArtifact, BuildDefinitionReference, BuildQueryOrder, BuildRestClient, BuildStatus, Timeline, TimelineRecord } from "azure-devops-extension-api/Build";
 import { CoreRestClient } from "azure-devops-extension-api/Core";
 import * as SDK from "azure-devops-extension-sdk";
 import { TaskAgentRestClient, VariableGroup } from "azure-devops-extension-api/TaskAgent";
@@ -11,6 +11,7 @@ export interface IBuildService {
     getBuildsForPipeline(pipelineId: number, status?: BuildStatus | undefined, branch?: string | undefined, top?: number | undefined): Promise<Build[]>;
     getTimelineForBuild(buildId: number): Promise<Timeline | undefined>;
     getApprovalForStage(timelineRecords: TimelineRecord[], stage: TimelineRecord): TimelineRecord | undefined;
+    getArtifactsForStage(buildId: number, timelineRecords: TimelineRecord[], currentStage: TimelineRecord) : Promise<BuildArtifact[]>;
     approveStage(stage: TimelineRecord, approvalComment: string): Promise<void>;
     getVariableGroups(): Promise<VariableGroup[]>;
     getVariableGroupsById(variableGroupIds: number[]): Promise<VariableGroup[]>;
@@ -79,6 +80,36 @@ export class BuildService implements IBuildService {
                 return approvals[0];
             }
         }
+    }
+
+    public async getArtifactsForStage(buildId: number, timelineRecords: adoBuild.TimelineRecord[], currentStage: adoBuild.TimelineRecord): Promise<adoBuild.BuildArtifact[]> {
+        var artifacts = await this.buildService?.getArtifacts(this.getProjectName(), buildId) ?? [];
+
+        var artifactsForStage : BuildArtifact[] = []
+
+        for (var artifact of artifacts){
+            var jobs = timelineRecords.filter((record, index) => (
+                record.id === artifact.source
+            ));
+
+            if (jobs.length === 1){
+                var job = jobs[0];
+
+                var phases = timelineRecords.filter((record, index) => (record.id === job.parentId));
+
+                if (phases.length === 1){
+                    var phase = phases[0];
+
+                    var stages = timelineRecords.filter((record, index) => (record.id === phase.parentId));
+
+                    if (stages.length === 1 && stages[0].identifier === currentStage.identifier){
+                        artifactsForStage.push(artifact);
+                    }
+                }
+            }
+        }
+
+        return artifactsForStage;
     }
 
     public async approveStage(stage: TimelineRecord, approvalComment: string): Promise<void> {

@@ -126,7 +126,7 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
                         </HeaderTitleRow>
                         <HeaderDescription>
                             {this.props.build.sourceBranch}
-                            <Link href={this.props.build._links.web.href}>{buildMessage} (Build {this.props.build.id})</Link>
+                            <Link target="_blank" href={this.props.build._links.web.href}>{buildMessage} (Build {this.props.build.id})</Link>
                         </HeaderDescription>
                     </HeaderTitleArea>
                 </CustomHeader>
@@ -134,7 +134,7 @@ export class PipelineRun extends React.Component<IPipelineRunProps, IPipelineRun
                 <div className="page-content page-content-top flex-row rhythm-horizontal-16">
                     {
                         stages.map((stage, index) => (
-                            <StageComponent currentStage={stage} timelineRecords={timelineRecords} pipelineId={this.props.build.definition.id} />
+                            <StageComponent currentStage={stage} timelineRecords={timelineRecords} pipelineId={this.props.build.definition.id} buildId={this.props.build.id} />
                         ))
                     }
                 </div>
