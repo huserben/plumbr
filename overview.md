@@ -52,6 +52,7 @@ Once you've done this you can switch back to the *Overview* and you should see y
 
 If you're not interested in all the stages that are displayed, you can head back to the settings and add all stages you want to hide for a pipeline to the *Stages to Ignore*.
 As with the branches to include, you'll see the matching stages once you start typing. After adding the stage you won't see the dedicated box anymore in the overview.
+*Note: The stage identifier (and not display name) shall be specified here*
 
 If you like to have a *Variable Group Configuration Approval*, you can just click on the variable group you want to have included in the approval for the stage in the specific *Variable Group Configuration* box. You can also select more than one variable group if needed.
 

@@ -2,10 +2,10 @@
     "manifestVersion": 1,
     "id": "plumbr",
     "publisher": "benjhuser",
-    "version": "0.1.256",
+    "version": "1.0.0",
     "name": "Plumbr",
     "description": "Manage your Azure Pipelines with this extension",
-    "public": false,
+    "public": true,
     "categories": [
         "Azure Pipelines"
     ],
@@ -14,7 +14,7 @@
             "id": "Microsoft.VisualStudio.Services"
         }
     ],
-    "scopes":[
+    "scopes": [
         "vso.build_execute",
         "vso.variablegroups_manage"
     ],
@@ -24,7 +24,27 @@
     "content": {
         "details": {
             "path": "overview.md"
+        },
+        "license": {
+			"path": "LICENSE"
+		}
+    },
+    "screenshots": [
+		{
+			"path": "images/overview_small.png"
+		}
+   ],
+    "links": {
+        "repository": {
+            "uri": "https://github.com/huserben/plumbr"
+        },
+        "license": {
+            "uri": "https://github.com/huserben/plumbr/blob/master/LICENSE"
         }
+    },
+    "repository": {
+        "type": "git",
+        "uri": "https://github.com/huserben/plumbr"
     },
     "files": [
         {
@@ -35,5 +55,9 @@
             "path": "dist",
             "addressable": true
         }
-    ]
+    ],
+    "branding": {
+        "color": "rgb(0, 191, 255)",
+        "theme": "light"
+    }
 }
